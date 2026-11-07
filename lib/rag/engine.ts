@@ -21,11 +21,11 @@ export interface StudentQueryContext {
 /**
  * Executes a Supabase query with a fast-fail timeout to prevent blocking when remote DB is offline
  */
-async function safeDbQuery<T>(promise: Promise<{ data: T | null; error?: any }>, timeoutMs = 1200): Promise<{ data: T | null }> {
+async function safeDbQuery<T = any>(query: any, timeoutMs = 1500): Promise<{ data: T | null }> {
   try {
     const timeout = new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), timeoutMs));
-    const res = await Promise.race([promise, timeout]);
-    if (res && res.data) return { data: res.data };
+    const res = await Promise.race([Promise.resolve(query), timeout]);
+    if (res && (res as any).data) return { data: (res as any).data as T };
     return { data: null };
   } catch {
     return { data: null };
@@ -211,7 +211,7 @@ export async function queryGroundedRAG(
     const adminContextParts: string[] = [];
     const citations: RAGCitation[] = [];
 
-    (allAdminChunks || []).forEach((c) => {
+    (allAdminChunks || []).forEach((c: any) => {
       const docTitle = docTitleMap.get(c.document_id) || c.metadata?.source_file || "Admin Uploaded Document";
       
       // If a specific student was asked for, highlight that row, otherwise include the table
@@ -325,7 +325,7 @@ export async function queryGroundedRAG(
       );
       const docTitleMap = new Map((sourceDocs || []).map((d: any) => [d.id, d.title]));
 
-      matchedRollChunks.forEach((c) => {
+      matchedRollChunks.forEach((c: any) => {
         const docTitle = docTitleMap.get(c.document_id) || c.metadata?.source_file || "Admin Uploaded PDF";
         const lines = (c.content || "").split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
 
@@ -448,21 +448,21 @@ export async function queryGroundedRAG(
 
     if (keywords.length > 0) {
       const orFilter = keywords.map((k) => `content.ilike.%${k}%`).join(",");
-      const { data } = await safeDbQuery(queryBuilder.or(orFilter));
-      if (data && data.length > 0) {
+      const { data } = await safeDbQuery<any[]>(queryBuilder.or(orFilter));
+      if (data && Array.isArray(data) && data.length > 0) {
         matchedChunks = data;
       }
     }
 
     if (matchedChunks.length === 0) {
-      const { data: recentChunks } = await safeDbQuery(
+      const { data: recentChunks } = await safeDbQuery<any[]>(
         supabase
           .from("document_chunks")
           .select("id, document_id, page_number, content, metadata")
           .order("created_at", { ascending: false })
           .limit(4)
       );
-      if (recentChunks) matchedChunks = recentChunks;
+      if (recentChunks && Array.isArray(recentChunks)) matchedChunks = recentChunks;
     }
   } catch (err) {
     console.warn("Chunk retrieval warning:", err);
