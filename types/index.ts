@@ -198,3 +198,73 @@ export interface DeadlineItem {
   priority: NoticePriority;
   status: 'PENDING' | 'COMPLETED' | 'OVERDUE';
 }
+
+// ----------------------------------------------------
+// Real LeetCode & Coding Assessment Engine Types
+// ----------------------------------------------------
+
+export interface LeetCodeStats {
+  username: string;
+  ranking: number;
+  reputation: number;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  recentSubmissions: Array<{
+    id: string;
+    title: string;
+    titleSlug: string;
+    timestamp: string;
+  }>;
+}
+
+export interface GitHubStats {
+  username: string;
+  publicRepos: number;
+  followers: number;
+  createdAt: string;
+  profileUrl: string;
+}
+
+export interface CodingProblem {
+  id: string;
+  frontendId: string;
+  title: string;
+  titleSlug: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  category: string;
+  url: string;
+  points: number;
+  topicTags: string[];
+}
+
+export interface CodingAssignment {
+  id: string;
+  title: string;
+  description: string;
+  assignedBy: string;
+  department: string;
+  academicYear: string;
+  deadline: string;
+  totalPoints: number;
+  problems: CodingProblem[];
+  status: 'ACTIVE' | 'CLOSED';
+  createdAt: string;
+}
+
+export interface StudentCodingSubmission {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  studentName: string;
+  rollNumber: string;
+  leetcodeUsername: string;
+  githubUsername: string;
+  solvedProblemSlugs: string[];
+  score: number;
+  maxScore: number;
+  status: 'COMPLETED' | 'PARTIAL' | 'PENDING';
+  submittedAt?: string;
+  verifiedLive: boolean;
+}

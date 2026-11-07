@@ -22,6 +22,7 @@ import {
   GraduationCap,
   Users,
   CheckCircle,
+  Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +32,10 @@ export const Sidebar: React.FC = () => {
 
   const studentLinks = [
     { href: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { href: "/student/assistant", label: "AI Campus Assistant", icon: <Bot className="w-4 h-4 text-indigo-400" /> },
-    { href: "/student/placements", label: "Placements & Careers", icon: <Briefcase className="w-4 h-4 text-emerald-400" /> },
+    { href: "/student/coding", label: "LeetCode & Lab Exams", icon: <Code2 className="w-4 h-4 text-emerald-400" /> },
     { href: "/student/skills", label: "Skills & Learning", icon: <Award className="w-4 h-4 text-amber-400" /> },
+    { href: "/student/placements", label: "Placements & Careers", icon: <Briefcase className="w-4 h-4 text-emerald-400" /> },
+    { href: "/student/assistant", label: "AI Campus Assistant", icon: <Bot className="w-4 h-4 text-indigo-400" /> },
     { href: "/student/gmail", label: "Gmail Intelligence & TTS", icon: <Mail className="w-4 h-4 text-sky-400" /> },
     { href: "/student/voice", label: "Voice Summarizer", icon: <Mic className="w-4 h-4 text-rose-400" /> },
     { href: "/student/deadlines", label: "Deadlines", icon: <CheckSquare className="w-4 h-4" /> },
@@ -42,6 +44,7 @@ export const Sidebar: React.FC = () => {
 
   const facultyLinks = [
     { href: "/faculty/dashboard", label: "Faculty Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { href: "/faculty/coding", label: "LeetCode Exam & Score Listing", icon: <Code2 className="w-4 h-4 text-emerald-400" /> },
     { href: "/admin/notices", label: "Post Circulars & Notices", icon: <Bell className="w-4 h-4 text-amber-400" /> },
     { href: "/student/placements", label: "Placement Tracker", icon: <Briefcase className="w-4 h-4 text-emerald-400" /> },
     { href: "/student/assistant", label: "AI Academic Query Assistant", icon: <Bot className="w-4 h-4 text-indigo-400" /> },
