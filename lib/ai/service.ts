@@ -4,31 +4,26 @@ import { GroqProvider } from "./providers/groq";
 import { StudentSkill, CareerRole, SkillGapAnalysis, LearningRoadmap } from "@/types";
 
 export class AIService {
-  private primaryProvider: AIProvider;
-  private fallbackProvider: AIProvider;
-
-  constructor() {
-    const isGroqPrimary = process.env.AI_PRIMARY_PROVIDER === "groq";
+  private getProviders(): { primary: AIProvider; fallback: AIProvider } {
+    const isGroqPrimary = (process.env.AI_PRIMARY_PROVIDER || "groq").toLowerCase() === "groq";
     if (isGroqPrimary) {
-      this.primaryProvider = new GroqProvider();
-      this.fallbackProvider = new GeminiProvider();
-    } else {
-      this.primaryProvider = new GeminiProvider();
-      this.fallbackProvider = new GroqProvider();
+      return { primary: new GroqProvider(), fallback: new GeminiProvider() };
     }
+    return { primary: new GeminiProvider(), fallback: new GroqProvider() };
   }
 
   async generateAnswer(prompt: string, context?: string): Promise<{ answer: string; provider: string }> {
+    const { primary, fallback } = this.getProviders();
     try {
-      const answer = await this.primaryProvider.generateAnswer(prompt, context);
-      return { answer, provider: this.primaryProvider.name };
+      const answer = await primary.generateAnswer(prompt, context);
+      return { answer, provider: primary.name };
     } catch (primaryErr) {
-      console.warn(`Primary AI Provider (${this.primaryProvider.name}) failed. Attempting fallback...`, primaryErr);
+      console.warn(`Primary AI Provider (${primary.name}) failed. Attempting fallback...`, primaryErr);
       try {
-        const answer = await this.fallbackProvider.generateAnswer(prompt, context);
-        return { answer, provider: this.fallbackProvider.name };
+        const answer = await fallback.generateAnswer(prompt, context);
+        return { answer, provider: fallback.name };
       } catch (fallbackErr) {
-        console.warn(`Fallback AI Provider (${this.fallbackProvider.name}) failed as well. Using Grounded Dev Mode fallback.`, fallbackErr);
+        console.warn(`Fallback AI Provider (${fallback.name}) failed as well. Using Grounded Dev Mode fallback.`, fallbackErr);
         
         if (context) {
           return {
@@ -46,58 +41,65 @@ export class AIService {
   }
 
   async generateEmbeddings(text: string): Promise<number[]> {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.generateEmbeddings(text);
+      return await primary.generateEmbeddings(text);
     } catch {
-      return await this.fallbackProvider.generateEmbeddings(text);
+      return await fallback.generateEmbeddings(text);
     }
   }
 
   async summarize(text: string) {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.summarize(text);
+      return await primary.summarize(text);
     } catch {
-      return await this.fallbackProvider.summarize(text);
+      return await fallback.summarize(text);
     }
   }
 
   async classifyEmail(subject: string, body: string) {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.classifyEmail(subject, body);
+      return await primary.classifyEmail(subject, body);
     } catch {
-      return await this.fallbackProvider.classifyEmail(subject, body);
+      return await fallback.classifyEmail(subject, body);
     }
   }
 
   async extractDeadline(text: string) {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.extractDeadline(text);
+      return await primary.extractDeadline(text);
     } catch {
-      return await this.fallbackProvider.extractDeadline(text);
+      return await fallback.extractDeadline(text);
     }
   }
 
   async extractActionItems(text: string): Promise<string[]> {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.extractActionItems(text);
+      return await primary.extractActionItems(text);
     } catch {
-      return await this.fallbackProvider.extractActionItems(text);
+      return await fallback.extractActionItems(text);
     }
   }
 
   async analyzeSkillGap(studentSkills: StudentSkill[], targetRole: CareerRole): Promise<SkillGapAnalysis> {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.analyzeSkillGap(studentSkills, targetRole);
+      return await primary.analyzeSkillGap(studentSkills, targetRole);
     } catch {
-      return await this.fallbackProvider.analyzeSkillGap(studentSkills, targetRole);
+      return await fallback.analyzeSkillGap(studentSkills, targetRole);
     }
   }
 
   async generateLearningPlan(gaps: SkillGapAnalysis): Promise<LearningRoadmap> {
+    const { primary, fallback } = this.getProviders();
     try {
-      return await this.primaryProvider.generateLearningPlan(gaps);
+      return await primary.generateLearningPlan(gaps);
     } catch {
-      return await this.fallbackProvider.generateLearningPlan(gaps);
+      return await fallback.generateLearningPlan(gaps);
     }
   }
 }

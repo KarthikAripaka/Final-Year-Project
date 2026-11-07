@@ -9,21 +9,29 @@ export class GroqProvider implements AIProvider {
   private preferredModels = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"];
 
   constructor() {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (apiKey && apiKey !== "example_groq_key" && apiKey !== "placeholder-groq-key") {
-      this.groq = new Groq({ apiKey });
+    this.getClient();
+  }
+
+  private getClient(): Groq | null {
+    if (!this.groq) {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (apiKey && apiKey !== "example_groq_key" && apiKey !== "placeholder-groq-key") {
+        this.groq = new Groq({ apiKey });
+      }
     }
+    return this.groq;
   }
 
   private isAvailable(): boolean {
-    return this.groq !== null;
+    return this.getClient() !== null;
   }
 
   /**
    * Safe chat completion that falls back across verified working models
    */
   private async executeChat(messages: any[], jsonFormat: boolean = false, temperature = 0.2): Promise<string> {
-    if (!this.isAvailable()) {
+    const client = this.getClient();
+    if (!client) {
       throw new Error("Groq API key is missing or unconfigured");
     }
 
@@ -31,7 +39,7 @@ export class GroqProvider implements AIProvider {
 
     for (const model of this.preferredModels) {
       try {
-        const response = await this.groq!.chat.completions.create({
+        const response = await client.chat.completions.create({
           model,
           messages,
           temperature,
