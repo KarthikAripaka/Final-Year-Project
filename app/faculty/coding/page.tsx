@@ -33,27 +33,8 @@ import {
   Eye,
   Info,
 } from "lucide-react";
-import { CodingAssignment, CodingProblem, LeetCodeStats } from "@/types";
-
-interface BatchStudentSubmission {
-  studentId: string;
-  studentName: string;
-  rollNumber: string;
-  department: string;
-  leetcodeUsername: string;
-  githubUsername: string;
-  totalSolved: number;
-  easySolved: number;
-  mediumSolved: number;
-  hardSolved: number;
-  ranking: number;
-  solvedProblems: string[]; // slugs
-  score: number;
-  maxScore: number;
-  status: "COMPLETED" | "PARTIAL" | "PENDING";
-  lastVerifiedAt: string;
-  verifiedLive: boolean;
-}
+import { CodingAssignment, CodingProblem } from "@/types";
+import { StudentScoreRecord } from "@/lib/coding/codingStore";
 
 export default function FacultyCodingPage() {
   const { user } = useAuth();
@@ -67,104 +48,9 @@ export default function FacultyCodingPage() {
   // Active Tab
   const [activeTab, setActiveTab] = useState<"scores" | "create" | "architecture">("scores");
 
-  // Batch Submissions State (Real Department Batch Records)
-  const [batchData, setBatchData] = useState<BatchStudentSubmission[]>([
-    {
-      studentId: "stud_1",
-      studentName: "Aripaka Karthik",
-      rollNumber: "A23126511128",
-      department: "Information Technology",
-      leetcodeUsername: "karthikaripaka",
-      githubUsername: "KarthikAripaka",
-      totalSolved: 185,
-      easySolved: 60,
-      mediumSolved: 105,
-      hardSolved: 20,
-      ranking: 384210,
-      solvedProblems: ["two-sum", "best-time-to-buy-and-sell-stock", "container-with-most-water"],
-      score: 70,
-      maxScore: 100,
-      status: "PARTIAL",
-      lastVerifiedAt: new Date().toISOString(),
-      verifiedLive: true,
-    },
-    {
-      studentId: "stud_2",
-      studentName: "P. Sneha",
-      rollNumber: "323126511082",
-      department: "Information Technology",
-      leetcodeUsername: "sneha_p_it",
-      githubUsername: "sneha-tech",
-      totalSolved: 162,
-      easySolved: 55,
-      mediumSolved: 95,
-      hardSolved: 12,
-      ranking: 412050,
-      solvedProblems: ["two-sum", "best-time-to-buy-and-sell-stock", "container-with-most-water", "longest-substring-without-repeating-characters"],
-      score: 100,
-      maxScore: 100,
-      status: "COMPLETED",
-      lastVerifiedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      verifiedLive: true,
-    },
-    {
-      studentId: "stud_3",
-      studentName: "V. Sai Teja",
-      rollNumber: "323126511099",
-      department: "Information Technology",
-      leetcodeUsername: "saiteja_v",
-      githubUsername: "saiteja-dev",
-      totalSolved: 140,
-      easySolved: 50,
-      mediumSolved: 80,
-      hardSolved: 10,
-      ranking: 495110,
-      solvedProblems: ["two-sum", "best-time-to-buy-and-sell-stock"],
-      score: 40,
-      maxScore: 100,
-      status: "PARTIAL",
-      lastVerifiedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-      verifiedLive: true,
-    },
-    {
-      studentId: "stud_4",
-      studentName: "K. Rohit",
-      rollNumber: "323126511045",
-      department: "Information Technology",
-      leetcodeUsername: "rohit_kumar_it",
-      githubUsername: "rohit-k",
-      totalSolved: 110,
-      easySolved: 45,
-      mediumSolved: 60,
-      hardSolved: 5,
-      ranking: 580200,
-      solvedProblems: ["two-sum"],
-      score: 20,
-      maxScore: 100,
-      status: "PARTIAL",
-      lastVerifiedAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-      verifiedLive: true,
-    },
-    {
-      studentId: "stud_5",
-      studentName: "Sravan Kumar",
-      rollNumber: "323126511112",
-      department: "Information Technology",
-      leetcodeUsername: "sravan_k",
-      githubUsername: "sravan-code",
-      totalSolved: 75,
-      easySolved: 35,
-      mediumSolved: 38,
-      hardSolved: 2,
-      ranking: 720400,
-      solvedProblems: [],
-      score: 0,
-      maxScore: 100,
-      status: "PENDING",
-      lastVerifiedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-      verifiedLive: false,
-    },
-  ]);
+  // Batch Submissions State (Loaded dynamically from /api/coding/submissions)
+  const [batchData, setBatchData] = useState<StudentScoreRecord[]>([]);
+  const [isLoadingBatch, setIsLoadingBatch] = useState(true);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
@@ -173,16 +59,16 @@ export default function FacultyCodingPage() {
   // Syncing state
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
-  const [verifyingStudentId, setVerifyingStudentId] = useState<string | null>(null);
+  const [verifyingStudentRoll, setVerifyingStudentRoll] = useState<string | null>(null);
 
   // Selected Student for detailed audit modal
-  const [auditStudent, setAuditStudent] = useState<BatchStudentSubmission | null>(null);
+  const [auditStudent, setAuditStudent] = useState<StudentScoreRecord | null>(null);
 
   // Create Assignment Form State
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newDepartment, setNewDepartment] = useState("Information Technology");
-  const [newDeadline, setNewDeadline] = useState("2026-11-15T23:59");
+  const [newDeadline, setNewDeadline] = useState("2026-11-25T23:59");
   const [problemSlugsInput, setProblemSlugsInput] = useState("valid-parentheses, number-of-islands, reverse-linked-list");
   const [isCreatingAssignment, setIsCreatingAssignment] = useState(false);
   const [createSuccessMsg, setCreateSuccessMsg] = useState<string | null>(null);
@@ -207,6 +93,28 @@ export default function FacultyCodingPage() {
     }
     loadAssignments();
   }, []);
+
+  // Load live batch scores whenever selectedAssignmentId changes
+  const fetchBatchScores = async (assignmentId: string) => {
+    setIsLoadingBatch(true);
+    try {
+      const res = await fetch(`/api/coding/submissions?assignmentId=${assignmentId}`);
+      const data = await res.json();
+      if (data.scores) {
+        setBatchData(data.scores);
+      }
+    } catch (err) {
+      console.error("Failed to fetch batch scores:", err);
+    } finally {
+      setIsLoadingBatch(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedAssignmentId) {
+      fetchBatchScores(selectedAssignmentId);
+    }
+  }, [selectedAssignmentId]);
 
   const activeAssignment = useMemo(() => {
     return assignments.find((a) => a.id === selectedAssignmentId) || assignments[0];
@@ -233,71 +141,31 @@ export default function FacultyCodingPage() {
   }, [batchData]);
 
   const totalBatchSolved = useMemo(() => {
-    return batchData.reduce((acc, s) => acc + s.totalSolved, 0);
+    return batchData.reduce((acc, s) => acc + s.totalLeetCodeSolved, 0);
   }, [batchData]);
 
   // Live Sync all batch students from LeetCode GraphQL
   const handleSyncAllLeetCode = async () => {
     setIsSyncingAll(true);
-    setSyncFeedback("Connecting to LeetCode GraphQL API across batch students...");
+    setSyncFeedback("Connecting to LeetCode GraphQL API across all batch handles...");
 
     try {
-      const updatedList: BatchStudentSubmission[] = [];
+      const res = await fetch(`/api/coding/submissions?action=sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId: selectedAssignmentId }),
+      });
 
-      for (const student of batchData) {
-        try {
-          const res = await fetch(`/api/coding/leetcode/profile?username=${student.leetcodeUsername}`);
-          const data = await res.json();
-
-          if (data.stats) {
-            const stats: LeetCodeStats = data.stats;
-            const recentSlugs = (stats.recentSubmissions || []).map((r) => r.titleSlug.toLowerCase());
-
-            // Check solved problems for active assignment
-            const assignmentProblems = activeAssignment?.problems || [];
-            const solved = assignmentProblems
-              .filter((p) => {
-                // Check if solved in existing record or found in recent live submissions
-                return student.solvedProblems.includes(p.titleSlug) || recentSlugs.includes(p.titleSlug);
-              })
-              .map((p) => p.titleSlug);
-
-            const score = assignmentProblems.reduce((acc, p) => {
-              return solved.includes(p.titleSlug) ? acc + p.points : acc;
-            }, 0);
-
-            const maxScore = activeAssignment?.totalPoints || 100;
-            const status: "COMPLETED" | "PARTIAL" | "PENDING" =
-              score >= maxScore ? "COMPLETED" : score > 0 ? "PARTIAL" : "PENDING";
-
-            updatedList.push({
-              ...student,
-              totalSolved: stats.totalSolved || student.totalSolved,
-              easySolved: stats.easySolved || student.easySolved,
-              mediumSolved: stats.mediumSolved || student.mediumSolved,
-              hardSolved: stats.hardSolved || student.hardSolved,
-              ranking: stats.ranking || student.ranking,
-              solvedProblems: Array.from(new Set([...student.solvedProblems, ...solved])),
-              score,
-              maxScore,
-              status,
-              lastVerifiedAt: new Date().toISOString(),
-              verifiedLive: true,
-            });
-          } else {
-            updatedList.push(student);
-          }
-        } catch (err) {
-          console.warn(`Sync failed for ${student.leetcodeUsername}:`, err);
-          updatedList.push(student);
-        }
+      const data = await res.json();
+      if (data.scores) {
+        setBatchData(data.scores);
+        setSyncFeedback(`✅ Live Batch Sync Complete: Verified ${data.scores.length} student profiles directly via LeetCode GraphQL API.`);
+      } else {
+        setSyncFeedback(data.message || "Batch sync finished.");
       }
-
-      setBatchData(updatedList);
-      setSyncFeedback(`✅ Live Batch Sync Complete: Verified ${updatedList.length} student profiles directly via LeetCode GraphQL API.`);
       setTimeout(() => setSyncFeedback(null), 5000);
     } catch (err: any) {
-      setSyncFeedback(`⚠️ Sync completed with partial network fallbacks.`);
+      setSyncFeedback(`⚠️ Sync completed with partial network status.`);
       setTimeout(() => setSyncFeedback(null), 4000);
     } finally {
       setIsSyncingAll(false);
@@ -305,56 +173,27 @@ export default function FacultyCodingPage() {
   };
 
   // Verify single student live
-  const handleVerifyStudentLive = async (student: BatchStudentSubmission) => {
-    setVerifyingStudentId(student.studentId);
+  const handleVerifyStudentLive = async (student: StudentScoreRecord) => {
+    setVerifyingStudentRoll(student.rollNumber);
     try {
-      const res = await fetch(`/api/coding/leetcode/profile?username=${student.leetcodeUsername}`);
+      const res = await fetch(`/api/coding/leetcode/profile?username=${encodeURIComponent(student.leetcodeUsername)}`);
       const data = await res.json();
 
       if (data.stats) {
-        const stats: LeetCodeStats = data.stats;
-        const recentSlugs = (stats.recentSubmissions || []).map((r) => r.titleSlug.toLowerCase());
-
-        const assignmentProblems = activeAssignment?.problems || [];
-        const solved = assignmentProblems
-          .filter((p) => student.solvedProblems.includes(p.titleSlug) || recentSlugs.includes(p.titleSlug))
-          .map((p) => p.titleSlug);
-
-        const score = assignmentProblems.reduce((acc, p) => (solved.includes(p.titleSlug) ? acc + p.points : acc), 0);
-        const maxScore = activeAssignment?.totalPoints || 100;
-        const status = score >= maxScore ? "COMPLETED" : score > 0 ? "PARTIAL" : "PENDING";
-
-        setBatchData((prev) =>
-          prev.map((s) =>
-            s.studentId === student.studentId
-              ? {
-                  ...s,
-                  totalSolved: stats.totalSolved || s.totalSolved,
-                  easySolved: stats.easySolved || s.easySolved,
-                  mediumSolved: stats.mediumSolved || s.mediumSolved,
-                  hardSolved: stats.hardSolved || s.hardSolved,
-                  ranking: stats.ranking || s.ranking,
-                  solvedProblems: Array.from(new Set([...s.solvedProblems, ...solved])),
-                  score,
-                  maxScore,
-                  status,
-                  lastVerifiedAt: new Date().toISOString(),
-                  verifiedLive: true,
-                }
-              : s
-          )
-        );
+        // Refresh batch scores from server
+        await fetchBatchScores(selectedAssignmentId);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setVerifyingStudentId(null);
+      setVerifyingStudentRoll(null);
     }
   };
 
   // Export Marks Sheet to CSV
   const handleExportCSV = () => {
     const headers = [
+      "Batch Rank",
       "Roll Number",
       "Student Name",
       "Department",
@@ -365,16 +204,15 @@ export default function FacultyCodingPage() {
       "Max Score",
       "Percentage",
       "Status",
-      "Total LeetCode Solved",
-      "Easy Solved",
-      "Medium Solved",
-      "Hard Solved",
+      "Problems Solved in Exam",
+      "Total Global LeetCode Solved",
       "Global Rank",
       "Verified Live",
       "Last Verified At",
     ];
 
     const rows = batchData.map((s) => [
+      s.rank,
       `"${s.rollNumber}"`,
       `"${s.studentName}"`,
       `"${s.department}"`,
@@ -383,13 +221,11 @@ export default function FacultyCodingPage() {
       `"${activeAssignment?.title || "Exam"}"`,
       s.score,
       s.maxScore,
-      `${Math.round((s.score / s.maxScore) * 100)}%`,
+      `${s.percentage}%`,
       `"${s.status}"`,
-      s.totalSolved,
-      s.easySolved,
-      s.mediumSolved,
-      s.hardSolved,
-      s.ranking,
+      `"${s.solvedProblemSlugs.join(", ")}"`,
+      s.totalLeetCodeSolved,
+      s.globalLeetCodeRank,
       s.verifiedLive ? "YES" : "NO",
       `"${new Date(s.lastVerifiedAt).toLocaleString()}"`,
     ]);
@@ -474,7 +310,7 @@ export default function FacultyCodingPage() {
             LeetCode Exam Conduction & Live Batch Score Listing
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Conduct laboratory exams & track batch student coding progress directly through LeetCode&apos;s Public GraphQL API (100% Free, zero mock data).
+            Conduct laboratory exams & track batch student coding progress directly through LeetCode&apos;s Public GraphQL API (100% Free, Zero Mock Data).
           </p>
         </div>
 
@@ -540,8 +376,8 @@ export default function FacultyCodingPage() {
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Batch Avg Score</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{averageScore}%</h3>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">Weighted assessment score</p>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{averageScore} pts</h3>
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5">Live weighted assessment</p>
             </div>
             <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-xl text-amber-600 dark:text-amber-400">
               <TrendingUp className="w-5 h-5" />
@@ -554,7 +390,7 @@ export default function FacultyCodingPage() {
             <div>
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Total LeetCode Solved</p>
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{totalBatchSolved}</h3>
-              <p className="text-[11px] text-sky-600 dark:text-sky-400 mt-0.5">Live cumulative tally</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-400 mt-0.5">Live GraphQL cumulative</p>
             </div>
             <div className="p-3 bg-sky-50 dark:bg-sky-950/50 rounded-xl text-sky-600 dark:text-sky-400">
               <Code2 className="w-5 h-5" />
@@ -702,6 +538,7 @@ export default function FacultyCodingPage() {
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
                   <tr>
+                    <th className="py-3 px-3 text-center">Rank</th>
                     <th className="py-3 px-4">Student Roll & Name</th>
                     <th className="py-3 px-4">LeetCode Profile</th>
                     <th className="py-3 px-4">GitHub Profile</th>
@@ -713,9 +550,16 @@ export default function FacultyCodingPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredStudents.length === 0 ? (
+                  {isLoadingBatch ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500">
+                      <td colSpan={9} className="py-8 text-center text-slate-500">
+                        <RefreshCw className="w-4 h-4 animate-spin inline-block mr-2" />
+                        Loading live batch submissions from server...
+                      </td>
+                    </tr>
+                  ) : filteredStudents.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-500">
                         No students found matching current search criteria.
                       </td>
                     </tr>
@@ -725,7 +569,24 @@ export default function FacultyCodingPage() {
                       const isPartial = student.status === "PARTIAL";
 
                       return (
-                        <tr key={student.studentId} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <tr key={student.rollNumber} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          {/* Rank */}
+                          <td className="py-3.5 px-3 text-center">
+                            <span
+                              className={`inline-flex items-center justify-center w-6 h-6 rounded-full font-bold text-xs ${
+                                student.rank === 1
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300"
+                                  : student.rank === 2
+                                  ? "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                                  : student.rank === 3
+                                  ? "bg-amber-800/20 text-amber-700 dark:text-amber-400"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              #{student.rank}
+                            </span>
+                          </td>
+
                           {/* Student Info */}
                           <td className="py-3.5 px-4">
                             <div className="font-bold text-slate-900 dark:text-white">{student.studentName}</div>
@@ -743,7 +604,9 @@ export default function FacultyCodingPage() {
                               @{student.leetcodeUsername}
                               <ExternalLink className="w-3 h-3 text-slate-400" />
                             </a>
-                            <div className="text-[10px] text-slate-400">Rank: #{student.ranking.toLocaleString()}</div>
+                            <div className="text-[10px] text-slate-400">
+                              {student.globalLeetCodeRank > 0 ? `Rank: #${student.globalLeetCodeRank.toLocaleString()}` : "Profile Linked"}
+                            </div>
                           </td>
 
                           {/* GitHub Handle */}
@@ -766,7 +629,7 @@ export default function FacultyCodingPage() {
                                 {student.score}/{student.maxScore}
                               </span>
                               <span className="text-[10px] text-slate-400">
-                                ({Math.round((student.score / student.maxScore) * 100)}%)
+                                ({student.percentage}%)
                               </span>
                             </div>
                             <div className="w-24 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-1">
@@ -774,7 +637,7 @@ export default function FacultyCodingPage() {
                                 className={`h-full rounded-full ${
                                   student.score >= 80 ? "bg-emerald-500" : student.score >= 40 ? "bg-amber-500" : "bg-rose-500"
                                 }`}
-                                style={{ width: `${(student.score / student.maxScore) * 100}%` }}
+                                style={{ width: `${student.percentage}%` }}
                               />
                             </div>
                           </td>
@@ -783,7 +646,7 @@ export default function FacultyCodingPage() {
                           <td className="py-3.5 px-4">
                             <div className="flex flex-wrap gap-1 max-w-[200px]">
                               {activeAssignment?.problems.map((p) => {
-                                const isSolved = student.solvedProblems.includes(p.titleSlug);
+                                const isSolved = student.solvedProblemSlugs.includes(p.titleSlug.toLowerCase());
                                 return (
                                   <span
                                     key={p.id}
@@ -800,13 +663,15 @@ export default function FacultyCodingPage() {
                               })}
                             </div>
                             <span className="text-[10px] text-slate-400 block mt-1">
-                              {student.solvedProblems.length} of {activeAssignment?.problems.length || 0} solved
+                              {student.solvedProblemSlugs.length} of {activeAssignment?.problems.length || 0} solved
                             </span>
                           </td>
 
                           {/* Global LeetCode Stats */}
                           <td className="py-3.5 px-4">
-                            <div className="font-bold text-slate-800 dark:text-slate-200">{student.totalSolved} Solved</div>
+                            <div className="font-bold text-slate-800 dark:text-slate-200">
+                              {student.totalLeetCodeSolved > 0 ? `${student.totalLeetCodeSolved} Solved` : "--"}
+                            </div>
                             <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
                               <span className="text-emerald-500 font-medium">E: {student.easySolved}</span>
                               <span className="text-amber-500 font-medium">M: {student.mediumSolved}</span>
@@ -839,11 +704,11 @@ export default function FacultyCodingPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleVerifyStudentLive(student)}
-                                disabled={verifyingStudentId === student.studentId}
+                                disabled={verifyingStudentRoll === student.rollNumber}
                                 className="h-7 px-2 text-[11px] border-slate-300 dark:border-slate-700"
                                 title="Re-check live submissions directly against LeetCode"
                               >
-                                <RefreshCw className={`w-3 h-3 text-emerald-600 ${verifyingStudentId === student.studentId ? "animate-spin" : ""}`} />
+                                <RefreshCw className={`w-3 h-3 text-emerald-600 ${verifyingStudentRoll === student.rollNumber ? "animate-spin" : ""}`} />
                                 <span className="ml-1 hidden sm:inline">Verify</span>
                               </Button>
 
@@ -1083,10 +948,10 @@ export default function FacultyCodingPage() {
                 <p className="text-emerald-400 font-bold"># Live Verification Flow:</p>
                 <p>1. Faculty creates Exam with LeetCode slugs: [&quot;two-sum&quot;, &quot;number-of-islands&quot;]</p>
                 <p>2. Backend calls LeetCode GraphQL: fetches official problem metadata, difficulty &amp; tags</p>
-                <p>3. Student solves problems directly on LeetCode IDE and gets Accepted (AC)</p>
-                <p>4. Student clicks &quot;Verify Submission&quot; or Faculty clicks &quot;Sync All Batch Scores&quot;</p>
-                <p>5. Backend queries LeetCode GraphQL for student&apos;s handle: matches recent AC submissions</p>
-                <p>6. Score is updated live in Faculty Score Listing &amp; Student Placement Readiness Index (100% Real)</p>
+                <p>3. Student solves problems directly on LeetCode IDE or In-Browser Lab Code Runner</p>
+                <p>4. Student clicks &quot;Verify Submission&quot; or submits code against test cases</p>
+                <p>5. Backend records problem solved, recalculates points, percentage &amp; batch rank</p>
+                <p>6. Score and Rank immediately update in Faculty Score Listing (100% Real)</p>
               </div>
             </CardContent>
           </Card>
@@ -1129,7 +994,9 @@ export default function FacultyCodingPage() {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Global Rank: #{auditStudent.ranking.toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {auditStudent.globalLeetCodeRank > 0 ? `Global Rank: #${auditStudent.globalLeetCodeRank.toLocaleString()}` : "Profile Linked"}
+                  </p>
                 </div>
 
                 <div>
@@ -1153,7 +1020,7 @@ export default function FacultyCodingPage() {
               {/* Tally */}
               <div className="grid grid-cols-4 gap-2 text-center">
                 <div className="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-lg border border-slate-200 dark:border-slate-700">
-                  <div className="text-lg font-bold text-slate-900 dark:text-white">{auditStudent.totalSolved}</div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-white">{auditStudent.totalLeetCodeSolved}</div>
                   <div className="text-[10px] text-slate-400">Total Solved</div>
                 </div>
                 <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
@@ -1177,7 +1044,7 @@ export default function FacultyCodingPage() {
                 </h4>
                 <div className="space-y-2">
                   {activeAssignment?.problems.map((prob) => {
-                    const isSolved = auditStudent.solvedProblems.includes(prob.titleSlug);
+                    const isSolved = auditStudent.solvedProblemSlugs.includes(prob.titleSlug.toLowerCase());
                     return (
                       <div
                         key={prob.id}
@@ -1224,7 +1091,7 @@ export default function FacultyCodingPage() {
               <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
-                  Last verified directly against live LeetCode GraphQL API at: {new Date(auditStudent.lastVerifiedAt).toLocaleString()}
+                  Last verified at: {new Date(auditStudent.lastVerifiedAt).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -1245,4 +1112,3 @@ export default function FacultyCodingPage() {
     </div>
   );
 }
-
