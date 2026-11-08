@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
-import { History, ShieldCheck } from "lucide-react";
+import { History } from "lucide-react";
 
 const mockAuditLogs = [
   { id: "1", action: "DOCUMENT_PUBLISHED", user: "Admin", target: "Academic Regulations 2026.pdf", timestamp: "2026-09-23 18:30" },

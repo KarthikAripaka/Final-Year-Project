@@ -45,7 +45,8 @@ export async function POST(request: NextRequest) {
         ? `✅ Live LeetCode Verification Confirmed: Problem "${problemSlug}" solved by @${username}. Recorded in Faculty Score Listing!`
         : `⚠️ Problem "${problemSlug}" not found in recent accepted submissions for @${username}. You can also use the In-Browser Code Runner to submit directly.`,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to verify problem" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to verify problem";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

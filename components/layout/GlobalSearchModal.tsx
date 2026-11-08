@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "../ui/Modal";
-import { Search, FileText, Bell, Briefcase, Calendar, ChevronRight, Loader2 } from "lucide-react";
+import { Search, FileText, Bell, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import Link from "next/link";
+import { CollegeDocument, CampusNotice, PlacementOpportunity, CalendarEvent } from "@/types";
 
 export interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -15,10 +16,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<{
-    documents: any[];
-    notices: any[];
-    placements: any[];
-    events: any[];
+    documents: CollegeDocument[];
+    notices: CampusNotice[];
+    placements: PlacementOpportunity[];
+    events: CalendarEvent[];
   }>({ documents: [], notices: [], placements: [], events: [] });
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ isOpen, on
 
           {query && !isLoading && Object.values(results).every((arr) => arr.length === 0) && (
             <div className="text-center py-8 text-xs text-slate-400">
-              No official campus records found matching "{query}".
+              No official campus records found matching &ldquo;{query}&rdquo;.
             </div>
           )}
 

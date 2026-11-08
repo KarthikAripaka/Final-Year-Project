@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Key, Sparkles, Server, ShieldCheck, CheckCircle2, RefreshCw, ExternalLink } from "lucide-react";
+import { Key, Sparkles, Server, RefreshCw, ExternalLink } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const [geminiKey, setGeminiKey] = useState("");
@@ -26,8 +26,9 @@ export default function AdminSettingsPage() {
       });
       const data = await res.json();
       setTestResult(`✅ API Response Verified! Provider Used: ${data.provider_used}`);
-    } catch (err: any) {
-      setTestResult(`❌ Connection Error: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setTestResult(`❌ Connection Error: ${msg}`);
     } finally {
       setIsTesting(false);
     }

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { parseCampusEmail, ParsedCampusEmail } from "@/lib/utils/campusEmail";
-import { Sparkles, Mail, ShieldCheck, GraduationCap, Building2, UserCheck, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, Mail, ShieldCheck, GraduationCap, Building2, UserCheck, ArrowRight, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -65,9 +65,10 @@ export default function LoginPage() {
       } else {
         router.push("/student/dashboard");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Login failed:", err);
-      setErrorMessage(err.message || "Login failed. Please check your credentials.");
+      const msg = err instanceof Error ? err.message : "Login failed. Please check your credentials.";
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }
@@ -107,9 +108,10 @@ export default function LoginPage() {
       } else {
         router.push("/student/dashboard");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Google Workspace Sign-in error:", err);
-      setErrorMessage(err.message || "Failed to authenticate with ANITS Google Workspace.");
+      const msg = err instanceof Error ? err.message : "Failed to authenticate with ANITS Google Workspace.";
+      setErrorMessage(msg);
     } finally {
       setGoogleLoading(false);
     }

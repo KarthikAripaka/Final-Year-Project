@@ -10,16 +10,13 @@ import { campusTTS } from "@/lib/tts/speechService";
 import {
   Bot,
   Briefcase,
-  Calendar,
   CheckSquare,
   Clock,
   Mail,
   Mic,
   Sparkles,
   ArrowRight,
-  ShieldAlert,
   Award,
-  CheckCircle2,
   Volume2,
   Square,
 } from "lucide-react";
@@ -177,7 +174,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-slate-200">
-                    "What is the minimum attendance requirement for final year examinations?"
+                    &ldquo;What is the minimum attendance requirement for final year examinations?&rdquo;
                   </p>
                   <div className="mt-2.5 p-3 rounded-xl bg-indigo-950/40 border border-indigo-900/60 text-xs text-slate-300 leading-relaxed">
                     Students must maintain a minimum attendance of <strong>75%</strong> across theoretical and practical courses. Attendance below 75% results in exam disqualification unless condoned by Dean Academic Affairs with medical proof.

@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { PieChart, Activity, Sparkles, Server, CheckCircle2 } from "lucide-react";
+import { Card } from "@/components/ui/Card";
+import { PieChart } from "lucide-react";
 
 export default function AdminAnalyticsPage() {
   return (

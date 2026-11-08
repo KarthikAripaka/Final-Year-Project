@@ -4,7 +4,6 @@ import { aiService } from "@/lib/ai/service";
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const audioFile = formData.get("file") as File;
     const title = (formData.get("title") as string) || "Recorded Voice Note";
     const sampleText = (formData.get("sampleText") as string) || "";
 
@@ -23,7 +22,8 @@ export async function POST(request: NextRequest) {
       actionItems,
       message: "Audio processed and summarized successfully using online AI Speech Intelligence.",
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to summarize audio" }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to summarize audio";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

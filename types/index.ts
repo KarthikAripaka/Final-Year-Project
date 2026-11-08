@@ -53,7 +53,7 @@ export interface DocumentChunk {
   section?: string;
   content: string;
   embedding?: number[];
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -74,6 +74,18 @@ export interface Notice {
   status: NoticeStatus;
   created_by: string;
   created_at: string;
+}
+
+export type CampusNotice = Notice;
+export type CollegeDocument = CampusDocument;
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string;
+  type: string;
+  time?: string;
+  description?: string;
 }
 
 export interface PlacementOpportunity {

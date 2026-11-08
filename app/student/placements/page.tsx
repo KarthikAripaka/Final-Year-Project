@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useCampusStore } from "@/lib/store/campusStore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Briefcase, CheckCircle2, XCircle, Search, Filter, Calendar, MapPin, DollarSign, ExternalLink } from "lucide-react";
+import { Briefcase, CheckCircle2, XCircle, Calendar, MapPin, DollarSign, ExternalLink } from "lucide-react";
 import { PlacementOpportunity } from "@/types";
 
 export default function PlacementsPage() {

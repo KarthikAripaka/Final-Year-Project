@@ -20,13 +20,41 @@ import {
   Mail,
   Calendar,
   Award,
-  Play,
-  RotateCcw,
   Zap,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
 import { AudioSummary } from "@/types";
+
+interface SpeechRecognitionResultItem {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: {
+    [index: number]: SpeechRecognitionResultItem;
+  };
+  length: number;
+}
+
+interface SpeechRecognitionEventLike {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
 
 interface VoiceCommandLog {
   id: string;
@@ -38,15 +66,14 @@ interface VoiceCommandLog {
 
 export default function VoicePage() {
   const { user } = useAuth();
-  const { voiceNotes, addVoiceNote, emails, deadlines, skills } = useCampusStore();
+  const { voiceNotes, addVoiceNote, emails, deadlines } = useCampusStore();
 
   const [activeTab, setActiveTab] = useState<"COMMANDS" | "LECTURE">("COMMANDS");
 
   // Web Speech Recognition (Speech to Text) State
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
-  const [recognitionSupported, setRecognitionSupported] = useState(true);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   // Voice Command Processing State
   const [commandLogs, setCommandLogs] = useState<VoiceCommandLog[]>([
@@ -65,7 +92,7 @@ export default function VoicePage() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isProcessingNote, setIsProcessingNote] = useState(false);
   const [titleInput, setTitleInput] = useState("Placement Preparation & Technical Webinar");
-  const noteTimerRef = useRef<any>(null);
+  const noteTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // TTS State
   const [ttsState, setTtsState] = useState<TTSState>({
@@ -87,14 +114,19 @@ export default function VoicePage() {
   // Initialize Web Speech API SpeechRecognition
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      interface CustomWindow extends Window {
+        SpeechRecognition?: new () => SpeechRecognitionInstance;
+        webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+      }
+      const customWin = window as unknown as CustomWindow;
+      const SpeechRecognitionClass = customWin.SpeechRecognition || customWin.webkitSpeechRecognition;
       if (SpeechRecognitionClass) {
         const recognition = new SpeechRecognitionClass();
         recognition.continuous = false;
         recognition.interimResults = true;
         recognition.lang = "en-US";
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEventLike) => {
           let current = "";
           for (let i = 0; i < event.results.length; i++) {
             current += event.results[i][0].transcript;
@@ -106,14 +138,12 @@ export default function VoicePage() {
           setIsListening(false);
         };
 
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEventLike) => {
           console.warn("Speech recognition error:", event.error);
           setIsListening(false);
         };
 
         recognitionRef.current = recognition;
-      } else {
-        setRecognitionSupported(false);
       }
     }
   }, []);
@@ -351,7 +381,7 @@ export default function VoicePage() {
                       Live Audio Speech to Text:
                     </span>
                     <p className="text-xs text-white italic">
-                      "{liveTranscript || "Listening for speech input..."}"
+                      &ldquo;{liveTranscript || "Listening for speech input..."}&rdquo;
                     </p>
                   </div>
                 )}
@@ -455,7 +485,7 @@ export default function VoicePage() {
                         <div className="flex items-center gap-2">
                           <Mic className="w-3.5 h-3.5 text-rose-400" />
                           <span className="text-xs font-bold text-white">
-                            "{log.transcript}"
+                            &ldquo;{log.transcript}&rdquo;
                           </span>
                         </div>
                         <div className="flex items-center gap-2">

@@ -29,13 +29,17 @@ export class GroqProvider implements AIProvider {
   /**
    * Safe chat completion that falls back across verified working models
    */
-  private async executeChat(messages: any[], jsonFormat: boolean = false, temperature = 0.2): Promise<string> {
+  private async executeChat(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+    jsonFormat: boolean = false,
+    temperature = 0.2
+  ): Promise<string> {
     const client = this.getClient();
     if (!client) {
       throw new Error("Groq API key is missing or unconfigured");
     }
 
-    let lastError: any = null;
+    let lastError: unknown = null;
 
     for (const model of this.preferredModels) {
       try {
@@ -47,13 +51,15 @@ export class GroqProvider implements AIProvider {
         });
         const content = response.choices[0]?.message?.content;
         if (content) return content;
-      } catch (err: any) {
+      } catch (err: unknown) {
         lastError = err;
-        console.warn(`Groq model ${model} encountered error: ${err.message}. Trying next fallback model...`);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.warn(`Groq model ${model} encountered error: ${errMsg}. Trying next fallback model...`);
       }
     }
 
-    throw lastError || new Error("All Groq models failed to return a response.");
+    if (lastError instanceof Error) throw lastError;
+    throw new Error("All Groq models failed to return a response.");
   }
 
   async generateAnswer(prompt: string, context?: string): Promise<string> {
@@ -241,7 +247,6 @@ Text: ${text}`;
   }
 
   async analyzeSkillGap(studentSkills: StudentSkill[], targetRole: CareerRole): Promise<SkillGapAnalysis> {
-    const studentSkillNames = studentSkills.map((s) => s.skill_name.toLowerCase());
     const required = targetRole.required_skills || [];
 
     const strongSkills: string[] = [];

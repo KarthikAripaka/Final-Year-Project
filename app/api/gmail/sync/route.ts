@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { aiService } from "@/lib/ai/service";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { gmailService, DecodedEmail } from "@/lib/gmail/gmailService";
+import { gmailService, DecodedEmail, RawAnalyzedEmail } from "@/lib/gmail/gmailService";
+
+interface StoredEmailAnalysisRow {
+  category: string;
+  priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+  summary: string;
+  extracted_deadline?: string | null;
+  action_items?: string[];
+}
+
+interface StoredEmailRow {
+  id: string;
+  message_id: string;
+  sender: string;
+  subject: string;
+  body: string;
+  email_date: string;
+  email_analysis?: StoredEmailAnalysisRow | StoredEmailAnalysisRow[];
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,8 +83,9 @@ export async function POST(request: NextRequest) {
     if (accessToken) {
       try {
         realEmails = await gmailService.fetchRealGmailMessages(accessToken, 15);
-      } catch (gmailErr: any) {
-        console.warn("Error fetching live Gmail with token:", gmailErr.message);
+      } catch (gmailErr: unknown) {
+        const errMsg = gmailErr instanceof Error ? gmailErr.message : String(gmailErr);
+        console.warn("Error fetching live Gmail with token:", errMsg);
       }
     }
 
@@ -100,30 +119,30 @@ export async function POST(request: NextRequest) {
           .limit(20);
 
         if (storedEmails && storedEmails.length > 0) {
-          const formatted = storedEmails.map((e: any) => {
+          const formatted: RawAnalyzedEmail[] = [];
+          for (const e of storedEmails as StoredEmailRow[]) {
             const an = Array.isArray(e.email_analysis) ? e.email_analysis[0] : e.email_analysis;
-            return {
-              message_id: e.message_id,
-              sender: e.sender,
-              subject: e.subject,
-              body: e.body,
-              email_date: e.email_date,
-              analysis: an
-                ? {
-                    category: an.category,
-                    priority: an.priority,
-                    summary: an.summary,
-                    extractedDeadline: an.extracted_deadline || undefined,
-                    actionItems: an.action_items || [],
-                  }
-                : undefined,
-            };
-          });
+            if (an) {
+              formatted.push({
+                message_id: e.message_id,
+                sender: e.sender,
+                subject: e.subject,
+                body: e.body,
+                email_date: e.email_date,
+                analysis: {
+                  category: an.category,
+                  priority: an.priority,
+                  summary: an.summary,
+                  extractedDeadline: an.extracted_deadline || undefined,
+                  actionItems: an.action_items || [],
+                },
+              });
+            }
+          }
 
           // If they already have analysis, prioritize and return
-          const analyzedReady = formatted.filter((f) => f.analysis);
-          if (analyzedReady.length > 0) {
-            const prioritized = gmailService.prioritizeEmails(analyzedReady);
+          if (formatted.length > 0) {
+            const prioritized = gmailService.prioritizeEmails(formatted);
             return NextResponse.json({
               success: true,
               syncedCount: prioritized.length,
@@ -199,17 +218,23 @@ export async function POST(request: NextRequest) {
 
     // 7. Analyze Real Emails with AI Engine & Persist safely
     const targetProcessList = realEmails.slice(0, 10);
-    const analyzedEmails = [];
+    const analyzedEmails: RawAnalyzedEmail[] = [];
 
     for (let i = 0; i < targetProcessList.length; i++) {
       const email = targetProcessList[i];
-      let analysis: any = null;
+      let analysis: {
+        category: string;
+        priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+        summary: string;
+        extractedDeadline?: string;
+        actionItems: string[];
+      } | null = null;
 
       if (i < 5) {
         try {
           analysis = await Promise.race([
             aiService.classifyEmail(email.subject, email.body),
-            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("AI Timeout")), 7000)),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI Timeout")), 7000)),
           ]);
         } catch {
           analysis = null;
@@ -339,10 +364,11 @@ export async function POST(request: NextRequest) {
       emails: prioritizedEmails,
       message: `Successfully synchronized and prioritized ${prioritizedEmails.length} real institutional emails.`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Gmail sync error:", error);
+    const errorMsg = error instanceof Error ? error.message : "Failed to synchronize Gmail inbox";
     return NextResponse.json(
-      { error: error.message || "Failed to synchronize Gmail inbox" },
+      { error: errorMsg },
       { status: 500 }
     );
   }
@@ -393,7 +419,7 @@ export async function GET(request: NextRequest) {
       return await POST(postReq);
     }
 
-    const formatted = (storedEmails || []).map((e: any) => {
+    const formatted: RawAnalyzedEmail[] = (storedEmails as StoredEmailRow[]).map((e: StoredEmailRow) => {
       const an = Array.isArray(e.email_analysis) ? e.email_analysis[0] : e.email_analysis;
       return {
         message_id: e.message_id,
@@ -432,7 +458,8 @@ export async function GET(request: NextRequest) {
       syncedCount: prioritized.length,
       emails: prioritized,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to load emails";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

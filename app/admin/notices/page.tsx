@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import { useCampusStore } from "@/lib/store/campusStore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Bell, Plus, CheckCircle2 } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
+import { CampusNotice } from "@/types";
 
 export default function AdminNoticesPage() {
   const { notices, addNotice } = useCampusStore();
@@ -22,7 +23,7 @@ export default function AdminNoticesPage() {
       title,
       description,
       category: "NOTICE",
-      priority: priority as any,
+      priority: priority as CampusNotice["priority"],
       status: "PUBLISHED",
       created_by: "Admin Console",
       deadline: new Date(Date.now() + 86400000 * 7).toISOString(),

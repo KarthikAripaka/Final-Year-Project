@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
       placements: placements || [],
       events: events || [],
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to search campus platform" }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to search campus platform";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

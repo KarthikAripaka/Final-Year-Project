@@ -2,14 +2,14 @@
 
 import React, { useState } from "react";
 import { useCampusStore } from "@/lib/store/campusStore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
-import { FileText, Upload, CheckCircle2, Eye, ShieldCheck, Trash2, RefreshCw, AlertCircle, Sparkles, BookOpen } from "lucide-react";
-import { CampusDocument, DocumentStatus } from "@/types";
+import { FileText, Upload, CheckCircle2, Eye, ShieldCheck } from "lucide-react";
+import { CampusDocument } from "@/types";
 
 export default function AdminDocumentsPage() {
   const { documents, addDocument, publishDocument } = useCampusStore();
@@ -66,7 +66,7 @@ export default function AdminDocumentsPage() {
           id: newDocId,
           title,
           description: description || sampleText,
-          category: category as any,
+          category: category as CampusDocument["category"],
           academic_year: "2026",
           version,
           document_type: "PDF",
@@ -233,7 +233,7 @@ export default function AdminDocumentsPage() {
                   <span>Embedding: 768 Vector Float Dimensions</span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  "{selectedDoc.description || selectedDoc.title}"
+                  &ldquo;{selectedDoc.description || selectedDoc.title}&rdquo;
                 </p>
               </div>
             </div>

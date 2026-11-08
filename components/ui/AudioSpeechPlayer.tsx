@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { campusTTS, TTSState } from "@/lib/tts/speechService";
-import { Play, Pause, Square, Volume2, FastForward } from "lucide-react";
+import { Play, Pause, Square, Volume2 } from "lucide-react";
 
 export const AudioSpeechPlayer: React.FC = () => {
   const [state, setState] = useState<TTSState>({

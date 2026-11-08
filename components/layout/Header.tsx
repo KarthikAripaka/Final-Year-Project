@@ -6,13 +6,11 @@ import { useCampusStore } from "@/lib/store/campusStore";
 import {
   Search as SearchIcon,
   Bell,
-  Shield,
   User,
   LogOut,
   Sparkles,
   Moon,
   Sun,
-  CheckCircle2,
   ChevronRight,
   Check,
   GraduationCap,

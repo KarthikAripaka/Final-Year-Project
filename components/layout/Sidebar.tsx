@@ -19,16 +19,13 @@ import {
   PieChart,
   History,
   Settings,
-  GraduationCap,
-  Users,
-  CheckCircle,
   Code2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { role, user } = useAuth();
+  const { role } = useAuth();
 
   const studentLinks = [
     { href: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },

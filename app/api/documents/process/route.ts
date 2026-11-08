@@ -31,8 +31,9 @@ export async function POST(request: NextRequest) {
       chunksCount: result.chunksCount,
       message: "PDF extracted, chunked, and embedded into pgvector. Status set to READY_FOR_REVIEW.",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Document Process Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to process document" }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : "Failed to process document";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

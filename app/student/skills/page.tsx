@@ -15,29 +15,21 @@ import {
   Plus,
   Sparkles,
   BookOpen,
-  ChevronRight,
-  Code2,
-  Github,
   Terminal,
-  ExternalLink,
   GraduationCap,
   Layers,
   FileCheck2,
-  TrendingUp,
   BarChart,
-  ShieldCheck,
-  Briefcase,
-  Lightbulb,
 } from "lucide-react";
-import { SkillGapAnalysis, LearningRoadmap } from "@/types";
+import { SkillGapAnalysis, LearningRoadmap, StudentSkill } from "@/types";
 
 export default function SkillsPage() {
   const { user } = useAuth();
   const { skills, addSkill } = useCampusStore();
 
   const [newSkillName, setNewSkillName] = useState("");
-  const [newSkillLevel, setNewSkillLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "ADVANCED">("INTERMEDIATE");
-  const [newSkillCategory, setNewSkillCategory] = useState<any>("Programming");
+  const [newSkillLevel, setNewSkillLevel] = useState<StudentSkill["proficiency_level"]>("INTERMEDIATE");
+  const [newSkillCategory, setNewSkillCategory] = useState<StudentSkill["category"]>("Programming");
 
   const [targetRole, setTargetRole] = useState("Software Engineer");
   const [isLoading, setIsLoading] = useState(false);
@@ -419,10 +411,12 @@ export default function SkillsPage() {
               <span className="text-slate-400">Logical Reasoning</span>
               <span className="text-white font-mono">{assessmentResults.logical}% Score</span>
             </div>
-            <div className="py-1">
-              <span className="text-[11px] text-slate-300 block truncate font-medium">AWS Certified Cloud Practitioner</span>
-              <span className="text-[10px] text-emerald-400">Amazon Web Services • Verified</span>
-            </div>
+            {certifications.slice(0, 1).map((cert, idx) => (
+              <div key={idx} className="py-1">
+                <span className="text-[11px] text-slate-300 block truncate font-medium">{cert.name}</span>
+                <span className="text-[10px] text-emerald-400">{cert.issuer} • {cert.status}</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
@@ -446,7 +440,7 @@ export default function SkillsPage() {
                 <div className="flex gap-2">
                   <Select
                     value={newSkillCategory}
-                    onChange={(e) => setNewSkillCategory(e.target.value)}
+                    onChange={(e) => setNewSkillCategory(e.target.value as StudentSkill["category"])}
                     options={[
                       { label: "Programming", value: "Programming" },
                       { label: "Frameworks", value: "Frameworks" },
@@ -458,7 +452,7 @@ export default function SkillsPage() {
                   />
                   <Select
                     value={newSkillLevel}
-                    onChange={(e) => setNewSkillLevel(e.target.value as any)}
+                    onChange={(e) => setNewSkillLevel(e.target.value as StudentSkill["proficiency_level"])}
                     options={[
                       { label: "Beginner", value: "BEGINNER" },
                       { label: "Intermediate", value: "INTERMEDIATE" },

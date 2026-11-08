@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
       document: updatedDoc,
       message: "Document published successfully. Now active in official RAG Knowledge Base.",
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to publish document" }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to publish document";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

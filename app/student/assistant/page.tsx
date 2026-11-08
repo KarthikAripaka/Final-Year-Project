@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -16,10 +16,6 @@ import {
   ShieldCheck,
   Volume2,
   Square,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  User,
 } from "lucide-react";
 import { RAGCitation } from "@/types";
 
@@ -196,7 +192,8 @@ I have strictly isolated access to your verified student records (**Roll No: ${s
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error("RAG assistant error:", err);
       setMessages((prev) => [
         ...prev,
         {
@@ -347,7 +344,7 @@ I have strictly isolated access to your verified student records (**Roll No: ${s
                                 Page {cite.page_number}
                               </Badge>
                             </div>
-                            <p className="text-[10px] text-slate-400 line-clamp-2">"{cite.snippet}"</p>
+                            <p className="text-[10px] text-slate-400 line-clamp-2">&ldquo;{cite.snippet}&rdquo;</p>
                           </div>
                         ))}
                       </div>

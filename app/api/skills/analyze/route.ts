@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
       gapAnalysis,
       learningRoadmap,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to run skill gap analysis" }, { status: 500 });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : "Failed to run skill gap analysis";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

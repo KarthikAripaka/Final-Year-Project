@@ -6,29 +6,23 @@ import { useCampusStore } from "@/lib/store/campusStore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Input } from "@/components/ui/Input";
 import {
   Users,
   Briefcase,
-  Bell,
   CheckCircle2,
-  FileText,
   AlertCircle,
   Sparkles,
   BookOpen,
   Send,
-  Plus,
-  ArrowRight,
   TrendingUp,
   Award,
   Download,
-  Filter,
   Search,
-  ChevronRight,
   BarChart3,
   Lightbulb,
 } from "lucide-react";
 import Link from "next/link";
+import { DocumentCategory, NoticePriority } from "@/types";
 
 interface StudentReadinessRecord {
   id: string;
@@ -45,12 +39,12 @@ interface StudentReadinessRecord {
 
 export default function FacultyDashboard() {
   const { user } = useAuth();
-  const { notices, addNotice, placements } = useCampusStore();
+  const { addNotice, placements } = useCampusStore();
 
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeDesc, setNoticeDesc] = useState("");
-  const [noticeCategory, setNoticeCategory] = useState<any>("ACADEMIC");
-  const [noticePriority, setNoticePriority] = useState<any>("HIGH");
+  const [noticeCategory, setNoticeCategory] = useState<DocumentCategory>("ACADEMIC");
+  const [noticePriority, setNoticePriority] = useState<NoticePriority>("HIGH");
   const [isPosting, setIsPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState(false);
 
@@ -613,7 +607,7 @@ export default function FacultyDashboard() {
                   <label className="text-xs text-slate-300 font-medium block mb-1">Category</label>
                   <select
                     value={noticeCategory}
-                    onChange={(e) => setNoticeCategory(e.target.value)}
+                    onChange={(e) => setNoticeCategory(e.target.value as DocumentCategory)}
                     className="w-full px-2 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                   >
                     <option value="ACADEMIC">ACADEMIC</option>
@@ -626,7 +620,7 @@ export default function FacultyDashboard() {
                   <label className="text-xs text-slate-300 font-medium block mb-1">Priority</label>
                   <select
                     value={noticePriority}
-                    onChange={(e) => setNoticePriority(e.target.value)}
+                    onChange={(e) => setNoticePriority(e.target.value as NoticePriority)}
                     className="w-full px-2 py-1.5 text-xs bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-emerald-500"
                   >
                     <option value="HIGH">HIGH</option>

@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import { useCampusStore } from "@/lib/store/campusStore";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { CheckSquare, Clock, AlertCircle, FileText, Mail, Briefcase, Mic } from "lucide-react";
+import { CheckSquare, Clock, FileText, Mail, Briefcase } from "lucide-react";
 
 export default function DeadlinesPage() {
   const { deadlines } = useCampusStore();

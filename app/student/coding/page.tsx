@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,20 +14,27 @@ import {
   AlertCircle,
   RefreshCw,
   Github,
-  Award,
   BookOpen,
-  Calendar,
-  Layers,
-  Sparkles,
-  Zap,
-  TrendingUp,
-  Clock,
   Play,
   Check,
-  X,
   FileCode,
+  X,
 } from "lucide-react";
 import { CodingAssignment, CodingProblem, LeetCodeStats, GitHubStats } from "@/types";
+import { StudentScoreRecord } from "@/lib/coding/codingStore";
+
+interface CodeRunTestDetail {
+  input: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+}
+
+interface CodeRunResultState {
+  passed: boolean;
+  message: string;
+  details?: CodeRunTestDetail[];
+}
 
 export default function StudentCodingPage() {
   const { user } = useAuth();
@@ -50,7 +57,6 @@ export default function StudentCodingPage() {
   // Active Assignments & Submissions
   const [assignments, setAssignments] = useState<CodingAssignment[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>("assign_1");
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
 
   // Live Student Assessment State
   const [studentScore, setStudentScore] = useState<number>(0);
@@ -66,7 +72,7 @@ export default function StudentCodingPage() {
   const [activeCodeProblem, setActiveCodeProblem] = useState<CodingProblem | null>(null);
   const [userCode, setUserCode] = useState<string>("");
   const [isRunningCode, setIsRunningCode] = useState(false);
-  const [codeRunResult, setCodeRunResult] = useState<any>(null);
+  const [codeRunResult, setCodeRunResult] = useState<CodeRunResultState | null>(null);
 
   // Starter templates for popular problems
   const starterCodeTemplates: Record<string, string> = {
@@ -121,7 +127,7 @@ function maxArea(height) {
   };
 
   // Sync Live LeetCode Data (100% Free GraphQL API)
-  const fetchRealLeetCodeProfile = async (usernameToFetch: string) => {
+  const fetchRealLeetCodeProfile = useCallback(async (usernameToFetch: string) => {
     setIsSyncingLeetCode(true);
     try {
       const res = await fetch(`/api/coding/leetcode/profile?username=${encodeURIComponent(usernameToFetch.trim())}`);
@@ -130,16 +136,17 @@ function maxArea(height) {
         setLeetcodeStats(data.stats);
         return data.stats;
       }
-    } catch (err: any) {
-      console.warn("LeetCode fetch error:", err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn("LeetCode fetch error:", errMsg);
     } finally {
       setIsSyncingLeetCode(false);
     }
     return null;
-  };
+  }, []);
 
   // Sync Live GitHub Data (100% Free REST API)
-  const fetchRealGitHubProfile = async (usernameToFetch: string) => {
+  const fetchRealGitHubProfile = useCallback(async (usernameToFetch: string) => {
     setIsSyncingGitHub(true);
     try {
       const res = await fetch(`/api/coding/github/profile?username=${encodeURIComponent(usernameToFetch.trim())}`);
@@ -148,21 +155,21 @@ function maxArea(height) {
         setGithubStats(data.stats);
         return data.stats;
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.warn("GitHub fetch error:", err);
     } finally {
       setIsSyncingGitHub(false);
     }
     return null;
-  };
+  }, []);
 
   // Load student's saved submissions & current rank
-  const loadSubmissions = async (assignmentId: string) => {
+  const loadSubmissions = useCallback(async (assignmentId: string) => {
     try {
       const res = await fetch(`/api/coding/submissions?assignmentId=${assignmentId}`);
       const data = await res.json();
       if (data.scores) {
-        const myRecord = data.scores.find((s: any) => s.rollNumber === studentRoll);
+        const myRecord = data.scores.find((s: StudentScoreRecord) => s.rollNumber === studentRoll);
         if (myRecord) {
           setStudentScore(myRecord.score);
           setStudentMaxScore(myRecord.maxScore);
@@ -170,16 +177,15 @@ function maxArea(height) {
           setSolvedSlugs(myRecord.solvedProblemSlugs || []);
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load submissions:", err);
     }
-  };
+  }, [studentRoll]);
 
   // Initial Load on Mount
   useEffect(() => {
     async function initPage() {
       setIsLoadingStats(true);
-      setIsLoadingAssignments(true);
 
       // Load assignments
       try {
@@ -189,10 +195,8 @@ function maxArea(height) {
           setAssignments(data.assignments);
           setSelectedAssignmentId(data.assignments[0].id);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Error loading assignments:", err);
-      } finally {
-        setIsLoadingAssignments(false);
       }
 
       // Fetch Real API Data
@@ -206,7 +210,7 @@ function maxArea(height) {
     }
 
     initPage();
-  }, []);
+  }, [fetchRealLeetCodeProfile, fetchRealGitHubProfile, githubUsername, leetcodeUsername, loadSubmissions, selectedAssignmentId]);
 
   const activeAssignment = assignments.find((a) => a.id === selectedAssignmentId) || assignments[0];
 
@@ -257,8 +261,9 @@ function maxArea(height) {
         // Reload submissions to reflect score and rank
         await loadSubmissions(activeAssignment?.id || "assign_1");
       }
-    } catch (err: any) {
-      setVerificationMessage(`⚠️ Verification error: ${err.message}`);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setVerificationMessage(`⚠️ Verification error: ${errMsg}`);
     } finally {
       setVerifyingSlug(null);
     }
@@ -314,10 +319,11 @@ function maxArea(height) {
           setSolvedSlugs(subData.record.solvedProblemSlugs || []);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       setCodeRunResult({
         passed: false,
-        message: `Execution failed: ${err.message}`,
+        message: `Execution failed: ${errMsg}`,
         details: [],
       });
     } finally {
@@ -767,7 +773,7 @@ function maxArea(height) {
 
                   {codeRunResult.details && codeRunResult.details.length > 0 && (
                     <div className="space-y-1.5 mt-2 font-mono text-[11px]">
-                      {codeRunResult.details.map((t: any, idx: number) => (
+                      {codeRunResult.details.map((t: CodeRunTestDetail, idx: number) => (
                         <div
                           key={idx}
                           className="p-2 rounded bg-black/10 dark:bg-black/30 flex items-center justify-between gap-2"

@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     codingStore.addAssignment(newAssignment);
 
     return NextResponse.json({ success: true, assignment: newAssignment });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to create assignment" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to create assignment";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

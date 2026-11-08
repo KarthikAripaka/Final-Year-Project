@@ -8,7 +8,7 @@ export interface DocumentChunkInsert {
   page_number: number;
   content: string;
   embedding?: number[] | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface StudentQueryContext {
@@ -18,14 +18,51 @@ export interface StudentQueryContext {
   studentName?: string;
 }
 
+interface DbQueryResult<T> {
+  data: T | null;
+}
+
+interface ChunkRowItem {
+  id: string;
+  document_id: string;
+  page_number?: number;
+  content?: string;
+  metadata?: { source_file?: string; [key: string]: unknown };
+}
+
+interface SourceDocItem {
+  id: string;
+  title: string;
+}
+
+interface DeadlineRowItem {
+  title: string;
+  deadline: string;
+  priority?: string;
+}
+
+interface StudentProfileRowItem {
+  id: string;
+  full_name?: string;
+  roll_number?: string;
+  cgpa?: number;
+  active_backlogs?: number;
+  graduation_year?: number;
+}
+
 /**
  * Executes a Supabase query with a fast-fail timeout to prevent blocking when remote DB is offline
  */
-async function safeDbQuery<T = any>(query: any, timeoutMs = 1500): Promise<{ data: T | null }> {
+async function safeDbQuery<T = unknown>(
+  query: PromiseLike<DbQueryResult<T>> | DbQueryResult<T> | unknown,
+  timeoutMs = 1500
+): Promise<{ data: T | null }> {
   try {
     const timeout = new Promise<{ data: null }>((resolve) => setTimeout(() => resolve({ data: null }), timeoutMs));
-    const res = await Promise.race([Promise.resolve(query), timeout]);
-    if (res && (res as any).data) return { data: (res as any).data as T };
+    const res = await Promise.race([Promise.resolve(query as PromiseLike<DbQueryResult<T>>), timeout]);
+    if (res && typeof res === "object" && "data" in res && res.data) {
+      return { data: res.data as T };
+    }
     return { data: null };
   } catch {
     return { data: null };
@@ -194,7 +231,7 @@ export async function queryGroundedRAG(
     const targetRoll = targetRollMatch ? targetRollMatch[0].toUpperCase().replace(/[^A-Z0-9]/g, "") : null;
 
     // Search all admin-uploaded document chunks (attendance reports, marks, circulars)
-    const { data: allAdminChunks } = await safeDbQuery(
+    const { data: allAdminChunks } = await safeDbQuery<ChunkRowItem[]>(
       supabase
         .from("document_chunks")
         .select("id, document_id, page_number, content, metadata")
@@ -202,16 +239,16 @@ export async function queryGroundedRAG(
         .limit(10)
     );
 
-    const docIds = Array.from(new Set((allAdminChunks || []).map((c: any) => c.document_id)));
-    const { data: sourceDocs } = await safeDbQuery(
+    const docIds = Array.from(new Set((allAdminChunks || []).map((c: ChunkRowItem) => c.document_id)));
+    const { data: sourceDocs } = await safeDbQuery<SourceDocItem[]>(
       supabase.from("documents").select("id, title").in("id", docIds)
     );
-    const docTitleMap = new Map((sourceDocs || []).map((d: any) => [d.id, d.title]));
+    const docTitleMap = new Map((sourceDocs || []).map((d: SourceDocItem) => [d.id, d.title]));
 
     const adminContextParts: string[] = [];
     const citations: RAGCitation[] = [];
 
-    (allAdminChunks || []).forEach((c: any) => {
+    (allAdminChunks || []).forEach((c: ChunkRowItem) => {
       const docTitle = docTitleMap.get(c.document_id) || c.metadata?.source_file || "Admin Uploaded Document";
       
       // If a specific student was asked for, highlight that row, otherwise include the table
@@ -229,13 +266,13 @@ export async function queryGroundedRAG(
           });
         }
       } else {
-        adminContextParts.push(`[Source: "${docTitle}", Page ${c.page_number || 1}]\n${c.content}`);
+        adminContextParts.push(`[Source: "${docTitle}", Page ${c.page_number || 1}]\n${c.content || ""}`);
         citations.push({
           document_id: c.document_id,
           title: docTitle,
           version: "Admin Uploaded PDF",
           page_number: c.page_number || 1,
-          snippet: c.content.substring(0, 160) + "...",
+          snippet: (c.content || "").substring(0, 160) + "...",
         });
       }
     });
@@ -275,7 +312,7 @@ export async function queryGroundedRAG(
       orFilters.push(`content.ilike.%${rollSuffix}%`);
     }
 
-    const { data: matchedRollChunks } = await safeDbQuery(
+    const { data: matchedRollChunks } = await safeDbQuery<ChunkRowItem[]>(
       supabase
         .from("document_chunks")
         .select("id, document_id, page_number, content, metadata")
@@ -284,7 +321,7 @@ export async function queryGroundedRAG(
     );
 
     // 4b. Fetch student profile from Supabase
-    const { data: prof } = await safeDbQuery(
+    const { data: prof } = await safeDbQuery<StudentProfileRowItem>(
       supabase
         .from("profiles")
         .select("id, full_name, roll_number, cgpa, active_backlogs, graduation_year")
@@ -295,7 +332,7 @@ export async function queryGroundedRAG(
     // 4c. Fetch student's upcoming deadlines
     let deadlinesList: string[] = [];
     if (prof?.id) {
-      const { data: dls } = await safeDbQuery(
+      const { data: dls } = await safeDbQuery<DeadlineRowItem[]>(
         supabase
           .from("deadlines")
           .select("title, deadline, category, priority")
@@ -306,7 +343,7 @@ export async function queryGroundedRAG(
 
       if (dls) {
         deadlinesList = dls.map(
-          (d: any) => `• ${d.title} (Deadline: ${new Date(d.deadline).toLocaleDateString()}, Priority: ${d.priority || "NORMAL"})`
+          (d: DeadlineRowItem) => `• ${d.title} (Deadline: ${new Date(d.deadline).toLocaleDateString()}, Priority: ${d.priority || "NORMAL"})`
         );
       }
     }
@@ -316,16 +353,16 @@ export async function queryGroundedRAG(
     const citations: RAGCitation[] = [];
 
     if (matchedRollChunks && matchedRollChunks.length > 0) {
-      const docIds = Array.from(new Set(matchedRollChunks.map((c: any) => c.document_id)));
-      const { data: sourceDocs } = await safeDbQuery(
+      const docIds = Array.from(new Set(matchedRollChunks.map((c: ChunkRowItem) => c.document_id)));
+      const { data: sourceDocs } = await safeDbQuery<SourceDocItem[]>(
         supabase
           .from("documents")
           .select("id, title")
           .in("id", docIds)
       );
-      const docTitleMap = new Map((sourceDocs || []).map((d: any) => [d.id, d.title]));
+      const docTitleMap = new Map((sourceDocs || []).map((d: SourceDocItem) => [d.id, d.title]));
 
-      matchedRollChunks.forEach((c: any) => {
+      matchedRollChunks.forEach((c: ChunkRowItem) => {
         const docTitle = docTitleMap.get(c.document_id) || c.metadata?.source_file || "Admin Uploaded PDF";
         const lines = (c.content || "").split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
 
@@ -432,7 +469,7 @@ export async function queryGroundedRAG(
   }
 
   // 2. GENERAL CAMPUS KNOWLEDGE / UPLOADED PDF SEARCH
-  let matchedChunks: any[] = [];
+  let matchedChunks: ChunkRowItem[] = [];
 
   // Keyword-assisted chunk search across published documents
   const keywords = question
@@ -441,21 +478,21 @@ export async function queryGroundedRAG(
     .slice(0, 5);
 
   try {
-    let queryBuilder = supabase
+    const queryBuilder = supabase
       .from("document_chunks")
       .select("id, document_id, page_number, content, metadata")
       .limit(6);
 
     if (keywords.length > 0) {
       const orFilter = keywords.map((k) => `content.ilike.%${k}%`).join(",");
-      const { data } = await safeDbQuery<any[]>(queryBuilder.or(orFilter));
+      const { data } = await safeDbQuery<ChunkRowItem[]>(queryBuilder.or(orFilter));
       if (data && Array.isArray(data) && data.length > 0) {
         matchedChunks = data;
       }
     }
 
     if (matchedChunks.length === 0) {
-      const { data: recentChunks } = await safeDbQuery<any[]>(
+      const { data: recentChunks } = await safeDbQuery<ChunkRowItem[]>(
         supabase
           .from("document_chunks")
           .select("id, document_id, page_number, content, metadata")
@@ -530,7 +567,7 @@ export async function queryGroundedRAG(
       title,
       version: "2026.1",
       page_number: page,
-      snippet: chunk.content.substring(0, 160) + "...",
+      snippet: (chunk.content || "").substring(0, 160) + "...",
     });
   }
 

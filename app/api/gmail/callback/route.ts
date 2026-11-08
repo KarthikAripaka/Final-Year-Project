@@ -85,8 +85,9 @@ export async function GET(request: NextRequest) {
     }
 
     return response;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("OAuth callback error:", err);
-    return NextResponse.redirect(`${baseUrl}/student/gmail?error=${encodeURIComponent(err.message || "Failed to exchange token")}`);
+    const errorMsg = err instanceof Error ? err.message : "Failed to exchange token";
+    return NextResponse.redirect(`${baseUrl}/student/gmail?error=${encodeURIComponent(errorMsg)}`);
   }
 }

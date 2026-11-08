@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Calendar as CalendarIcon, Clock, MapPin, Briefcase, FileText } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 
 const campusEvents = [

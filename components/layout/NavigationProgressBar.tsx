@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 export const NavigationProgressBar: React.FC = () => {
@@ -8,17 +8,20 @@ export const NavigationProgressBar: React.FC = () => {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     // Finish loading when route completes change
-    if (loading) {
-      setProgress(100);
-      const timer = setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 200);
-      return () => clearTimeout(timer);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
+    setProgress(100);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setProgress(0);
+    }, 200);
+    return () => clearTimeout(timer);
   }, [pathname, searchParams]);
 
   useEffect(() => {

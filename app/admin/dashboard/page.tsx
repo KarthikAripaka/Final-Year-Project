@@ -4,7 +4,7 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Users, FileText, Bell, Briefcase, Activity, ShieldCheck, Upload, Sparkles, ArrowRight } from "lucide-react";
+import { Users, FileText, Briefcase, Activity, ShieldCheck, Upload } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {

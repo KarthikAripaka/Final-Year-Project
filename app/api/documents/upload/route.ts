@@ -23,8 +23,9 @@ export async function GET() {
     }));
 
     return NextResponse.json({ success: true, documents: docsWithCounts });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to load documents";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 
@@ -95,7 +96,17 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Chunk text intelligently by lines, tables, or standard 700-character segments
-    const chunksToInsert: any[] = [];
+    interface ChunkToInsertItem {
+      document_id: string;
+      page_number: number;
+      content: string;
+      metadata: {
+        source_file: string;
+        roll_numbers: string[];
+        chunk_index: number;
+      };
+    }
+    const chunksToInsert: ChunkToInsertItem[] = [];
     const lines = rawText.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
     let currentChunk = "";
@@ -155,8 +166,9 @@ export async function POST(request: NextRequest) {
       extractedSnippet: rawText.substring(0, 300) + "...",
       message: `Successfully ingested "${file.name}" with ${chunksToInsert.length} chunks. The AI Assistant is now fed with this document's details!`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload Route Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to upload document" }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : "Failed to upload document";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

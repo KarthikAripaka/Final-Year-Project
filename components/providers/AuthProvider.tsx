@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { UserProfile, UserRole } from "@/types";
 import { parseCampusEmail } from "@/lib/utils/campusEmail";
 import { createClient } from "@/lib/supabase/client";
@@ -61,96 +61,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, explicitRole?: UserRole, explicitRollNumber?: string): Promise<UserProfile> => {
-    setIsLoading(true);
+  const login = useCallback(
+    async (email: string, explicitRole?: UserRole, explicitRollNumber?: string): Promise<UserProfile> => {
+      setIsLoading(true);
 
-    const parsed = parseCampusEmail(email);
-    if (!parsed.isValid) {
-      setIsLoading(false);
-      throw new Error(parsed.error || "Access restricted: Only verified @anits.edu.in email accounts are permitted.");
-    }
-
-    const targetRole: UserRole = explicitRole || parsed.role;
-    const finalRollNumber = explicitRollNumber || (email.includes("aripaka") ? "A23126511128" : parsed.rollNumber);
-
-    const profile: UserProfile = {
-      id: user?.id || `user-${Date.now()}`,
-      email: parsed.email,
-      full_name: parsed.fullName || (targetRole === "ADMIN" ? "ANITS Academic Cell" : targetRole === "FACULTY" ? "Prof. Faculty Member" : "Aripaka Karthik"),
-      role: targetRole,
-      roll_number: finalRollNumber,
-      department_name: parsed.departmentName,
-      graduation_year: parsed.graduationYear || 2027,
-      cgpa: 8.65,
-      active_backlogs: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    // Attempt to sync/verify with Supabase
-    try {
-      const supabase = createClient();
-      const { data: existingProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("email", parsed.email)
-        .maybeSingle();
-
-      if (existingProfile) {
-        profile.id = existingProfile.id;
-        profile.cgpa = existingProfile.cgpa || profile.cgpa;
-        profile.roll_number = existingProfile.roll_number || profile.roll_number;
+      const parsed = parseCampusEmail(email);
+      if (!parsed.isValid) {
+        setIsLoading(false);
+        throw new Error(parsed.error || "Access restricted: Only verified @anits.edu.in email accounts are permitted.");
       }
-    } catch (err) {
-      console.warn("Supabase profile sync notice:", err);
-    }
 
-    setUser(profile);
-    setRole(targetRole);
+      const targetRole: UserRole = explicitRole || parsed.role;
+      const finalRollNumber = explicitRollNumber || (email.includes("aripaka") ? "A23126511128" : parsed.rollNumber);
 
-    localStorage.setItem("anits_campus_user_profile", JSON.stringify(profile));
-    localStorage.setItem("campus_assistant_demo_role", targetRole);
-    localStorage.setItem("campus_student_roll", profile.roll_number || "A23126511128");
+      const profile: UserProfile = {
+        id: user?.id || `user-${Date.now()}`,
+        email: parsed.email,
+        full_name: parsed.fullName || (targetRole === "ADMIN" ? "ANITS Academic Cell" : targetRole === "FACULTY" ? "Prof. Faculty Member" : "Aripaka Karthik"),
+        role: targetRole,
+        roll_number: finalRollNumber,
+        department_name: parsed.departmentName,
+        graduation_year: parsed.graduationYear || 2027,
+        cgpa: 8.65,
+        active_backlogs: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-    if (typeof document !== "undefined") {
-      document.cookie = "campus_session=true; path=/; max-age=604800; SameSite=Lax";
-      document.cookie = `campus_role=${targetRole}; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = `campus_email=${encodeURIComponent(parsed.email)}; path=/; max-age=604800; SameSite=Lax`;
-      document.cookie = `campus_roll_number=${encodeURIComponent(profile.roll_number || "A23126511128")}; path=/; max-age=604800; SameSite=Lax`;
-    }
-
-    setIsLoading(false);
-    return profile;
-  };
-
-  const updateRollNumber = async (newRollNumber: string) => {
-    if (!newRollNumber || !user) return;
-    const finalRoll = newRollNumber.trim().toUpperCase();
-    const updated: UserProfile = {
-      ...user,
-      roll_number: finalRoll,
-    };
-    setUser(updated);
-    localStorage.setItem("anits_campus_user_profile", JSON.stringify(updated));
-    localStorage.setItem("campus_student_roll", finalRoll);
-    if (typeof document !== "undefined") {
-      document.cookie = `campus_roll_number=${encodeURIComponent(finalRoll)}; path=/; max-age=604800; SameSite=Lax`;
-    }
-
-    try {
-      const supabase = createClient();
-      if (user.email) {
-        await supabase
+      // Attempt to sync/verify with Supabase
+      try {
+        const supabase = createClient();
+        const { data: existingProfile } = await supabase
           .from("profiles")
-          .update({ roll_number: finalRoll, updated_at: new Date().toISOString() })
-          .eq("email", user.email);
-      }
-    } catch (err) {
-      console.warn("Could not sync roll number to Supabase:", err);
-    }
-  };
+          .select("*")
+          .eq("email", parsed.email)
+          .maybeSingle();
 
-  const logout = async () => {
+        if (existingProfile) {
+          profile.id = existingProfile.id;
+          profile.cgpa = existingProfile.cgpa || profile.cgpa;
+          profile.roll_number = existingProfile.roll_number || profile.roll_number;
+        }
+      } catch (err) {
+        console.warn("Supabase profile sync notice:", err);
+      }
+
+      setUser(profile);
+      setRole(targetRole);
+
+      localStorage.setItem("anits_campus_user_profile", JSON.stringify(profile));
+      localStorage.setItem("campus_assistant_demo_role", targetRole);
+      localStorage.setItem("campus_student_roll", profile.roll_number || "A23126511128");
+
+      if (typeof document !== "undefined") {
+        document.cookie = "campus_session=true; path=/; max-age=604800; SameSite=Lax";
+        document.cookie = `campus_role=${targetRole}; path=/; max-age=604800; SameSite=Lax`;
+        document.cookie = `campus_email=${encodeURIComponent(parsed.email)}; path=/; max-age=604800; SameSite=Lax`;
+        document.cookie = `campus_roll_number=${encodeURIComponent(profile.roll_number || "A23126511128")}; path=/; max-age=604800; SameSite=Lax`;
+      }
+
+      setIsLoading(false);
+      return profile;
+    },
+    [user?.id]
+  );
+
+  const updateRollNumber = useCallback(
+    async (newRollNumber: string) => {
+      if (!newRollNumber || !user) return;
+      const finalRoll = newRollNumber.trim().toUpperCase();
+      const updated: UserProfile = {
+        ...user,
+        roll_number: finalRoll,
+      };
+      setUser(updated);
+      localStorage.setItem("anits_campus_user_profile", JSON.stringify(updated));
+      localStorage.setItem("campus_student_roll", finalRoll);
+      if (typeof document !== "undefined") {
+        document.cookie = `campus_roll_number=${encodeURIComponent(finalRoll)}; path=/; max-age=604800; SameSite=Lax`;
+      }
+
+      try {
+        const supabase = createClient();
+        if (user.email) {
+          await supabase
+            .from("profiles")
+            .update({ roll_number: finalRoll, updated_at: new Date().toISOString() })
+            .eq("email", user.email);
+        }
+      } catch (err) {
+        console.warn("Could not sync roll number to Supabase:", err);
+      }
+    },
+    [user]
+  );
+
+  const logout = useCallback(async () => {
     setIsLoading(true);
     setUser(null);
     localStorage.removeItem("anits_campus_user_profile");
@@ -162,39 +168,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       document.cookie = "campus_roll_number=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax";
     }
     setIsLoading(false);
-  };
+  }, []);
 
-  const switchRole = (newRole: UserRole) => {
-    setRole(newRole);
-    if (!user) {
+  const switchRole = useCallback(
+    (newRole: UserRole) => {
       setRole(newRole);
-      return;
-    }
+      if (!user) {
+        setRole(newRole);
+        return;
+      }
 
-    let updatedName = user.full_name;
-    if (newRole === "ADMIN") updatedName = "ANITS Administrator (Exam Cell)";
-    else if (newRole === "FACULTY") updatedName = "Prof. K. Srinivas (HOD - IT)";
-    else updatedName = "Aripaka Karthik";
+      let updatedName = user.full_name;
+      if (newRole === "ADMIN") updatedName = "ANITS Administrator (Exam Cell)";
+      else if (newRole === "FACULTY") updatedName = "Prof. K. Srinivas (HOD - IT)";
+      else updatedName = "Aripaka Karthik";
 
-    const updated: UserProfile = {
-      ...user,
-      role: newRole,
-      full_name: updatedName,
-    };
+      const updated: UserProfile = {
+        ...user,
+        role: newRole,
+        full_name: updatedName,
+      };
 
-    setUser(updated);
-    localStorage.setItem("anits_campus_user_profile", JSON.stringify(updated));
-    localStorage.setItem("campus_assistant_demo_role", newRole);
+      setUser(updated);
+      localStorage.setItem("anits_campus_user_profile", JSON.stringify(updated));
+      localStorage.setItem("campus_assistant_demo_role", newRole);
 
-    if (typeof document !== "undefined") {
-      document.cookie = "campus_session=true; path=/; max-age=604800; SameSite=Lax";
-      document.cookie = `campus_role=${newRole}; path=/; max-age=604800; SameSite=Lax`;
-    }
-  };
+      if (typeof document !== "undefined") {
+        document.cookie = "campus_session=true; path=/; max-age=604800; SameSite=Lax";
+        document.cookie = `campus_role=${newRole}; path=/; max-age=604800; SameSite=Lax`;
+      }
+    },
+    [user]
+  );
 
   const authValue = useMemo(
     () => ({ user, role, isLoading, login, logout, switchRole, updateRollNumber }),
-    [user, role, isLoading]
+    [user, role, isLoading, login, logout, switchRole, updateRollNumber]
   );
 
   return (

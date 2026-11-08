@@ -15,6 +15,7 @@ export interface TTSState {
 class CampusSpeechService {
   private synth: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private currentTitle: string = "Speech Playback";
   private listeners: Array<(state: TTSState) => void> = [];
   private rate: number = 1.0;
   private isBrowser: boolean = false;
@@ -31,7 +32,7 @@ class CampusSpeechService {
       isPlaying: this.synth ? this.synth.speaking && !this.synth.paused : false,
       isPaused: this.synth ? this.synth.paused : false,
       currentText: this.currentUtterance?.text || "",
-      currentTitle: (this.currentUtterance as any)?._customTitle || "Speech Playback",
+      currentTitle: this.currentTitle || "Speech Playback",
       playbackRate: this.rate,
     };
   }
@@ -53,7 +54,7 @@ class CampusSpeechService {
     this.rate = rate;
     if (this.currentUtterance && this.synth?.speaking) {
       const text = this.currentUtterance.text;
-      const title = (this.currentUtterance as any)?._customTitle;
+      const title = this.currentTitle;
       this.stop();
       this.speak(text, title);
     } else {
@@ -73,8 +74,8 @@ class CampusSpeechService {
 
     this.stop();
 
+    this.currentTitle = title;
     const utterance = new SpeechSynthesisUtterance(text);
-    (utterance as any)._customTitle = title;
     utterance.rate = this.rate;
     utterance.pitch = 1.0;
 
@@ -101,8 +102,8 @@ class CampusSpeechService {
       this.notify();
     };
 
-    utterance.onerror = (e) => {
-      console.warn("Speech error:", e);
+    utterance.onerror = (e: SpeechSynthesisErrorEvent) => {
+      console.warn("Speech error:", e.error);
       this.currentUtterance = null;
       this.notify();
     };
@@ -234,4 +235,3 @@ class CampusSpeechService {
 }
 
 export const campusTTS = new CampusSpeechService();
-

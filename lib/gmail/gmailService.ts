@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, type gmail_v1 } from "googleapis";
 
 export interface DecodedEmail {
   message_id: string;
@@ -7,6 +7,16 @@ export interface DecodedEmail {
   body: string;
   email_date: string;
   snippet?: string;
+}
+
+export interface RawAnalyzedEmail extends DecodedEmail {
+  analysis: {
+    category: string;
+    priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
+    summary: string;
+    extractedDeadline?: string;
+    actionItems: string[];
+  };
 }
 
 export interface PrioritizedAnalyzedEmail extends DecodedEmail {
@@ -79,7 +89,7 @@ export class GmailIntegrationService {
   /**
    * Extracts clean text content from Gmail message payload parts
    */
-  private extractMessageBody(payload: any): string {
+  private extractMessageBody(payload?: gmail_v1.Schema$MessagePart): string {
     if (!payload) return "";
 
     if (payload.body && payload.body.data) {
@@ -170,7 +180,7 @@ export class GmailIntegrationService {
   /**
    * Prioritizes analyzed emails by extracted deadline date, urgency priority, and freshness
    */
-  public prioritizeEmails(analyzedEmails: Array<any>): PrioritizedAnalyzedEmail[] {
+  public prioritizeEmails(analyzedEmails: Array<RawAnalyzedEmail>): PrioritizedAnalyzedEmail[] {
     const priorityWeights: Record<string, number> = {
       URGENT: 4000,
       HIGH: 3000,

@@ -8,8 +8,9 @@ export async function GET(request: NextRequest) {
 
     const stats = await leetcodeService.fetchLeetCodeProfile(username);
     return NextResponse.json({ success: true, stats });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to fetch LeetCode profile" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to fetch LeetCode profile";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 
@@ -20,8 +21,9 @@ export async function POST(request: NextRequest) {
 
     const stats = await leetcodeService.fetchLeetCodeProfile(username);
     return NextResponse.json({ success: true, stats });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to fetch LeetCode profile" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to fetch LeetCode profile";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(ragResult);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("RAG Chat API error:", error);
     return NextResponse.json(
       {

@@ -1,17 +1,16 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import {
   CampusDocument,
   Notice,
   PlacementOpportunity,
   StudentSkill,
-  EmailAnalysis,
   AudioSummary,
   DeadlineItem,
   NotificationItem,
-  RAGCitation,
 } from "@/types";
+import { PrioritizedAnalyzedEmail } from "@/lib/gmail/gmailService";
 
 export interface CampusStoreContextType {
   // Documents & RAG
@@ -32,10 +31,10 @@ export interface CampusStoreContextType {
 
   // Skills
   skills: StudentSkill[];
-  addSkill: (name: string, category: any, level: any) => void;
+  addSkill: (name: string, category: StudentSkill["category"], level: StudentSkill["proficiency_level"]) => void;
 
   // Gmail Emails
-  emails: any[];
+  emails: PrioritizedAnalyzedEmail[];
   syncGmailInbox: (explicitEmail?: string) => Promise<void>;
 
   // Voice Notes
@@ -58,42 +57,57 @@ const defaultInitialDocuments: CampusDocument[] = [
     description: "Official institutional rules regarding grading system, minimum 75% attendance threshold, medical condonation criteria, and semester-end exam eligibility.",
     category: "REGULATION",
     academic_year: "2026-2027",
-    version: "2026.1",
-    document_type: "PDF",
-    file_url: "/uploads/anits_academic_regulations_2026.pdf",
-    uploaded_by: "Dean of Academic Affairs (ANITS)",
+    version: "v2.4",
+    document_type: "PDF_INSTITUTIONAL",
+    file_url: "/documents/ANITS_Academic_Regulations_2026.pdf",
+    uploaded_by: "Dean Academic Affairs",
     status: "PUBLISHED",
-    chunks_count: 48,
+    chunks_count: 42,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
     id: "doc_102",
-    title: "ANITS Campus Placement Guidelines & Recruiter Criteria 2026-27",
-    description: "Placement eligibility criteria (7.0+ CGPA for Super Dream drives, 0 active backlogs), test schedules, Accenture (₹9.5 LPA), Amazon (₹44 LPA), and company registration procedures.",
+    title: "Training & Placement Cell Rules & Eligibility 2026",
+    description: "Comprehensive recruitment rules, Dream and Core offer limits, interview etiquette, and zero-tolerance policy on placement drive absenteeism.",
     category: "PLACEMENT",
     academic_year: "2026-2027",
-    version: "2026.2",
-    document_type: "PDF",
-    file_url: "/uploads/anits_placement_guidelines_2026.pdf",
-    uploaded_by: "ANITS Training & Placement Cell",
+    version: "v1.8",
+    document_type: "PDF_OFFICIAL",
+    file_url: "/documents/TPO_Placement_Guidelines_2026.pdf",
+    uploaded_by: "Head T&P Cell",
     status: "PUBLISHED",
-    chunks_count: 32,
+    chunks_count: 28,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
     id: "doc_103",
-    title: "ANITS Department of IT - IV/IV B.Tech Syllabus & Capstone Guidelines",
-    description: "Course syllabus for IT411 Full Stack Web Development, IT412 Cloud Computing & DevOps, IT413 Machine Learning, IT414 Cryptography, IT415 Capstone Project, and IT416 AI Lab.",
+    title: "B.Tech Information Technology Curriculum & Syllabus (Sem 1-8)",
+    description: "Course structure, prerequisites, credit allocation, laboratory requirements, and professional electives catalog for autonomous batches.",
     category: "ACADEMIC",
     academic_year: "2026-2027",
-    version: "2026.1",
-    document_type: "PDF",
-    file_url: "/uploads/anits_it_curriculum_2026.pdf",
-    uploaded_by: "Head of Department (IT), ANITS",
+    version: "v3.1",
+    document_type: "PDF_CURRICULUM",
+    file_url: "/documents/IT_Curriculum_Syllabus_2026.pdf",
+    uploaded_by: "HOD Information Technology",
     status: "PUBLISHED",
-    chunks_count: 56,
+    chunks_count: 64,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "doc_104",
+    title: "Final Year Capstone Project Guidelines & Rubrics",
+    description: "Phase 1 and Phase 2 project milestones, synopsis evaluation rubrics, guide allocation, and patent filing incentives.",
+    category: "PROJECT",
+    academic_year: "2026-2027",
+    version: "v1.2",
+    document_type: "PDF_ACADEMIC",
+    file_url: "/documents/Capstone_Project_Guidelines.pdf",
+    uploaded_by: "Department Project Coordinator",
+    status: "PUBLISHED",
+    chunks_count: 18,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -101,76 +115,97 @@ const defaultInitialDocuments: CampusDocument[] = [
 
 const defaultInitialNotices: Notice[] = [
   {
-    id: "n1",
-    title: "IV/IV B.Tech Mid-Term Examination Schedule & Condonation Notice",
-    description: "Mid-Term Examinations will commence from November 2, 2026. Hall tickets will be issued starting October 28. Attendance verification must be completed by department HODs by October 25. Students between 65%-74% attendance must submit medical condonation applications.",
+    id: "notice_1",
+    title: "Mid-Term II Examination Schedule - October 2026",
+    description: "Mid-Term Examinations for IV/IV B.Tech commence from October 27, 2026. Hall tickets available on the student portal after clearing tuition fee dues.",
     category: "EXAM",
-    priority: "URGENT",
-    status: "PUBLISHED",
-    created_by: "Dean Academic Affairs (ANITS)",
-    deadline: "2026-10-25T17:00:00Z",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "n2",
-    title: "Accenture Solutions Campus Recruitment Drive 2026-27 (₹9.5 LPA)",
-    description: "Accenture is hiring for Advanced Application Developer. Minimum CGPA required is 7.5 with 0 active backlogs. All eligible IV/IV B.Tech IT & CSE students must register before October 5, 2026 at 5:00 PM.",
-    category: "PLACEMENT",
     priority: "HIGH",
+    deadline: "2026-10-25T17:00:00Z",
+    published_at: new Date().toISOString(),
     status: "PUBLISHED",
-    created_by: "ANITS Training & Placement Cell",
-    deadline: "2026-10-05T17:00:00Z",
+    created_by: "Controller of Examinations",
     created_at: new Date().toISOString(),
   },
   {
-    id: "n3",
-    title: "Department Capstone Project Phase-1 Abstract Review Schedule",
-    description: "All final year B.Tech IT project batches must submit their Phase-1 architecture documents and problem abstracts for faculty panel review before October 20, 2026.",
+    id: "notice_2",
+    title: "Accenture Solutions Campus Recruitment Drive 2026",
+    description: "Accenture full-time recruitment for Advanced Application Engineering Analyst (₹9.5 LPA). Eligible streams: IT, CSE, ECE. Minimum 65% aggregate with zero active backlogs.",
+    category: "PLACEMENT",
+    priority: "URGENT",
+    deadline: "2026-10-05T23:59:00Z",
+    published_at: new Date().toISOString(),
+    status: "PUBLISHED",
+    created_by: "Training & Placement Officer",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "notice_3",
+    title: "Smart India Hackathon (SIH) 2026 Internal Hackathon",
+    description: "Internal institutional hackathon for selecting top 30 teams for National SIH 2026. Submit project abstract by October 12, 2026.",
     category: "PROJECT",
     priority: "NORMAL",
+    deadline: "2026-10-12T18:00:00Z",
+    published_at: new Date().toISOString(),
     status: "PUBLISHED",
-    created_by: "Department Project Committee, IT",
-    deadline: "2026-10-20T17:00:00Z",
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    created_by: "Institution Innovation Council (IIC)",
+    created_at: new Date().toISOString(),
   },
 ];
 
 const defaultInitialPlacements: PlacementOpportunity[] = [
   {
     id: "p1",
-    company: "Accenture Solutions",
-    role: "Advanced Application Developer",
-    description: "Build cloud-native enterprise solutions using Microservices, Java, React, and DevOps pipelines.",
-    salary: "₹9.5 LPA",
-    location: "Bengaluru / Hyderabad",
+    company: "Amazon Development Centre",
+    role: "Software Development Engineer - I (AWS)",
+    description: "Designing distributed microservices, caching layers, and high-throughput real-time telemetry systems.",
+    salary: "₹44.0 LPA CTC",
+    location: "Hyderabad, India",
     employment_type: "FULL_TIME",
     allowed_departments: ["IT", "CSE", "ECE"],
-    minimum_cgpa: 7.5,
+    minimum_cgpa: 8.0,
     max_backlogs: 0,
-    graduation_year: 2026,
-    deadline: "2026-10-05T17:00:00Z",
-    test_date: "2026-10-15T10:00:00Z",
-    interview_date: "2026-10-22T09:00:00Z",
-    application_url: "https://accenture.campus.portal",
+    graduation_year: 2027,
+    deadline: "2026-10-20T23:59:00Z",
+    test_date: "2026-10-24T10:00:00Z",
+    interview_date: "2026-10-28T09:00:00Z",
+    application_url: "https://amazon.jobs/university",
     status: "ACTIVE",
     created_at: new Date().toISOString(),
   },
   {
     id: "p2",
-    company: "Deloitte USI",
-    role: "Analyst — Technology Consulting",
-    description: "Provide enterprise IT consulting, data analytics, and digital transformation services.",
-    salary: "₹8.2 LPA",
-    location: "Gurugram / Hyderabad",
+    company: "Accenture Solutions",
+    role: "Advanced Application Engineering Analyst",
+    description: "Developing scalable cloud microservices, enterprise integrations, and data engineering pipelines.",
+    salary: "₹9.5 LPA CTC",
+    location: "Bangalore / Hyderabad",
     employment_type: "FULL_TIME",
-    allowed_departments: ["IT", "CSE", "ECE", "EEE", "MECH"],
-    minimum_cgpa: 7.0,
+    allowed_departments: ["IT", "CSE", "ECE", "EEE"],
+    minimum_cgpa: 6.5,
     max_backlogs: 0,
-    graduation_year: 2026,
-    deadline: "2026-10-12T18:00:00Z",
-    test_date: "2026-10-20T10:00:00Z",
-    interview_date: "2026-10-28T09:00:00Z",
-    application_url: "https://deloitte.campus.portal",
+    graduation_year: 2027,
+    deadline: "2026-10-05T23:59:00Z",
+    test_date: "2026-10-10T14:00:00Z",
+    interview_date: "2026-10-14T09:30:00Z",
+    application_url: "https://accenture.com/campus",
+    status: "ACTIVE",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "p3",
+    company: "Tata Consultancy Services (TCS)",
+    role: "Digital & Prime Software Engineer",
+    description: "Enterprise full-stack engineering, cloud infrastructure maintenance, and reactive UI implementation.",
+    salary: "₹7.5 - ₹9.0 LPA CTC",
+    location: "Visakhapatnam / Hyderabad",
+    employment_type: "FULL_TIME",
+    allowed_departments: ["IT", "CSE", "ECE", "MECH", "CIVIL"],
+    minimum_cgpa: 7.0,
+    max_backlogs: 1,
+    graduation_year: 2027,
+    deadline: "2026-10-18T23:59:00Z",
+    test_date: "2026-10-22T09:00:00Z",
+    application_url: "https://nextstep.tcs.com",
     status: "ACTIVE",
     created_at: new Date().toISOString(),
   },
@@ -183,7 +218,7 @@ const defaultInitialSkills: StudentSkill[] = [
   { id: "s4", student_id: "demo", skill_name: "React", category: "Frameworks", proficiency_level: "BEGINNER", updated_at: new Date().toISOString() },
 ];
 
-const defaultInitialEmails: any[] = [];
+const defaultInitialEmails: PrioritizedAnalyzedEmail[] = [];
 
 const defaultInitialVoiceNotes: AudioSummary[] = [
   {
@@ -243,7 +278,7 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [placements, setPlacements] = useState<PlacementOpportunity[]>(defaultInitialPlacements);
   const [appliedPlacementIds, setAppliedPlacementIds] = useState<string[]>(["p1"]);
   const [skills, setSkills] = useState<StudentSkill[]>(defaultInitialSkills);
-  const [emails, setEmails] = useState<any[]>(defaultInitialEmails);
+  const [emails, setEmails] = useState<PrioritizedAnalyzedEmail[]>(defaultInitialEmails);
   const [voiceNotes, setVoiceNotes] = useState<AudioSummary[]>(defaultInitialVoiceNotes);
   const [notifications, setNotifications] = useState<NotificationItem[]>(defaultInitialNotifications);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -282,51 +317,53 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   // Save to localStorage helper
-  const saveState = (key: string, val: any) => {
+  const saveState = useCallback((key: string, val: unknown) => {
     try {
       localStorage.setItem(key, JSON.stringify(val));
     } catch (e) {
       console.warn("Storage save error:", e);
     }
-  };
+  }, []);
 
-  const addDocument = (doc: CampusDocument) => {
+  const addDocument = useCallback((doc: CampusDocument) => {
     setDocuments((prev) => {
       const next = [doc, ...prev];
       saveState("campus_store_documents", next);
       return next;
     });
-  };
+  }, [saveState]);
 
-  const publishDocument = (docId: string) => {
+  const publishDocument = useCallback((docId: string) => {
     setDocuments((prev) => {
       const next = prev.map((d) => (d.id === docId ? { ...d, status: "PUBLISHED" as const } : d));
       saveState("campus_store_documents", next);
       return next;
     });
 
-    // Generate system notification
-    const targetDoc = documents.find((d) => d.id === docId);
-    if (targetDoc) {
-      const newNotif: NotificationItem = {
-        id: Math.random().toString(),
-        student_id: "demo",
-        title: `New Official Knowledge Published: ${targetDoc.title}`,
-        message: `Official document version ${targetDoc.version} is now published in the AI Knowledge Base.`,
-        category: "ACADEMIC",
-        read: false,
-        link_url: "/student/assistant",
-        created_at: new Date().toISOString(),
-      };
-      setNotifications((prev) => {
-        const next = [newNotif, ...prev];
-        saveState("campus_store_notifications", next);
-        return next;
-      });
-    }
-  };
+    setDocuments((currentDocs) => {
+      const targetDoc = currentDocs.find((d) => d.id === docId);
+      if (targetDoc) {
+        const newNotif: NotificationItem = {
+          id: Math.random().toString(),
+          student_id: "demo",
+          title: `New Official Knowledge Published: ${targetDoc.title}`,
+          message: `Official document version ${targetDoc.version} is now published in the AI Knowledge Base.`,
+          category: "ACADEMIC",
+          read: false,
+          link_url: "/student/assistant",
+          created_at: new Date().toISOString(),
+        };
+        setNotifications((prevNotifs) => {
+          const nextNotifs = [newNotif, ...prevNotifs];
+          saveState("campus_store_notifications", nextNotifs);
+          return nextNotifs;
+        });
+      }
+      return currentDocs;
+    });
+  }, [saveState]);
 
-  const getPublishedChunks = () => {
+  const getPublishedChunks = useCallback(() => {
     const publishedDocs = documents.filter((d) => d.status === "PUBLISHED");
     const chunks: Array<{ document_title: string; version: string; page_number: number; content: string }> = [];
 
@@ -358,9 +395,9 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     return chunks;
-  };
+  }, [documents]);
 
-  const addNotice = (noticeData: Omit<Notice, "id" | "created_at">) => {
+  const addNotice = useCallback((noticeData: Omit<Notice, "id" | "created_at">) => {
     const newNotice: Notice = {
       ...noticeData,
       id: Math.random().toString(),
@@ -372,7 +409,6 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return next;
     });
 
-    // Auto-generate notification
     const newNotif: NotificationItem = {
       id: Math.random().toString(),
       student_id: "demo",
@@ -388,9 +424,9 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       saveState("campus_store_notifications", next);
       return next;
     });
-  };
+  }, [saveState]);
 
-  const addPlacement = (placementData: Omit<PlacementOpportunity, "id" | "created_at">) => {
+  const addPlacement = useCallback((placementData: Omit<PlacementOpportunity, "id" | "created_at">) => {
     const newPlacement: PlacementOpportunity = {
       ...placementData,
       id: Math.random().toString(),
@@ -402,7 +438,6 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return next;
     });
 
-    // Auto-generate notification
     const newNotif: NotificationItem = {
       id: Math.random().toString(),
       student_id: "demo",
@@ -418,18 +453,18 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       saveState("campus_store_notifications", next);
       return next;
     });
-  };
+  }, [saveState]);
 
-  const applyPlacement = (placementId: string) => {
+  const applyPlacement = useCallback((placementId: string) => {
     setAppliedPlacementIds((prev) => {
       if (prev.includes(placementId)) return prev;
       const next = [...prev, placementId];
       saveState("campus_store_applied", next);
       return next;
     });
-  };
+  }, [saveState]);
 
-  const addSkill = (name: string, category: any, level: any) => {
+  const addSkill = useCallback((name: string, category: StudentSkill["category"], level: StudentSkill["proficiency_level"]) => {
     const newSkill: StudentSkill = {
       id: Math.random().toString(),
       student_id: "demo",
@@ -443,9 +478,9 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
       saveState("campus_store_skills", next);
       return next;
     });
-  };
+  }, [saveState]);
 
-  const syncGmailInbox = async (explicitEmail?: string) => {
+  const syncGmailInbox = useCallback(async (explicitEmail?: string) => {
     try {
       let targetEmail = explicitEmail;
       if (!targetEmail && typeof window !== "undefined") {
@@ -473,16 +508,15 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch (e) {
       console.error("Sync error:", e);
     }
-  };
+  }, [saveState]);
 
-  const addVoiceNote = (note: AudioSummary) => {
+  const addVoiceNote = useCallback((note: AudioSummary) => {
     setVoiceNotes((prev) => {
       const next = [note, ...prev];
       saveState("campus_store_voice", next);
       return next;
     });
 
-    // Auto-generate deadline if action item present
     if (note.action_items && note.action_items.length > 0) {
       const newNotif: NotificationItem = {
         id: Math.random().toString(),
@@ -500,15 +534,15 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return next;
       });
     }
-  };
+  }, [saveState]);
 
-  const markNotificationRead = (id: string) => {
+  const markNotificationRead = useCallback((id: string) => {
     setNotifications((prev) => {
       const next = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
       saveState("campus_store_notifications", next);
       return next;
     });
-  };
+  }, [saveState]);
 
   // Compute live unified deadlines across ALL sources (memoized for performance)
   const deadlines: DeadlineItem[] = useMemo(() => {
@@ -587,14 +621,24 @@ export const CampusStoreProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }),
     [
       documents,
+      addDocument,
+      publishDocument,
+      getPublishedChunks,
       notices,
+      addNotice,
       placements,
       appliedPlacementIds,
+      addPlacement,
+      applyPlacement,
       skills,
+      addSkill,
       emails,
+      syncGmailInbox,
       voiceNotes,
+      addVoiceNote,
       deadlines,
       notifications,
+      markNotificationRead,
       isInitialized,
     ]
   );

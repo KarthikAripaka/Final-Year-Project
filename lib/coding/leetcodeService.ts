@@ -86,17 +86,28 @@ export class LeetCodeService {
         };
       }
 
-      const acNums = user.submitStatsGlobal?.acSubmissionNum || [];
-      const totalSolved = acNums.find((a: any) => a.difficulty === "All")?.count || 0;
-      const easySolved = acNums.find((a: any) => a.difficulty === "Easy")?.count || 0;
-      const mediumSolved = acNums.find((a: any) => a.difficulty === "Medium")?.count || 0;
-      const hardSolved = acNums.find((a: any) => a.difficulty === "Hard")?.count || 0;
+      interface LeetCodeAcCount {
+        difficulty: string;
+        count: number;
+      }
+      interface LeetCodeRecentAcItem {
+        id: string | number;
+        title: string;
+        titleSlug: string;
+        timestamp: string;
+      }
 
-      const recent = (json.data?.recentAcSubmissionList || []).map((sub: any) => ({
+      const acNums: LeetCodeAcCount[] = user.submitStatsGlobal?.acSubmissionNum || [];
+      const totalSolved = acNums.find((a: LeetCodeAcCount) => a.difficulty === "All")?.count || 0;
+      const easySolved = acNums.find((a: LeetCodeAcCount) => a.difficulty === "Easy")?.count || 0;
+      const mediumSolved = acNums.find((a: LeetCodeAcCount) => a.difficulty === "Medium")?.count || 0;
+      const hardSolved = acNums.find((a: LeetCodeAcCount) => a.difficulty === "Hard")?.count || 0;
+
+      const recent = (json.data?.recentAcSubmissionList || []).map((sub: LeetCodeRecentAcItem) => ({
         id: String(sub.id),
         title: sub.title,
         titleSlug: sub.titleSlug,
-        timestamp: new Date(parseInt(sub.timestamp, 10) * 1000).toISOString(),
+        timestamp: new Date(parseInt(String(sub.timestamp), 10) * 1000).toISOString(),
       }));
 
       return {
@@ -109,8 +120,9 @@ export class LeetCodeService {
         hardSolved,
         recentSubmissions: recent,
       };
-    } catch (err: any) {
-      console.warn(`Direct LeetCode GraphQL fetch failed for ${cleanUsername}:`, err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn(`Direct LeetCode GraphQL fetch failed for ${cleanUsername}:`, errMsg);
       // Return 0 stats without fake mock data
       return {
         username: cleanUsername,
@@ -173,16 +185,17 @@ export class LeetCodeService {
             frontendId: q.questionFrontendId,
             title: q.title,
             titleSlug: q.titleSlug,
-            difficulty: q.difficulty as any,
+            difficulty: (q.difficulty as CodingProblem["difficulty"]) || "Medium",
             category: q.categoryTitle || "Algorithms",
             url: `https://leetcode.com/problems/${q.titleSlug}/`,
             points,
-            topicTags: (q.topicTags || []).map((t: any) => t.name),
+            topicTags: (q.topicTags || []).map((t: { name: string }) => t.name),
           };
         }
       }
-    } catch (e: any) {
-      console.warn(`Problem fetch from LeetCode failed for ${cleanSlug}:`, e.message);
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.warn(`Problem fetch from LeetCode failed for ${cleanSlug}:`, errMsg);
     }
 
     // Dynamic problem formatting based on slug
@@ -222,8 +235,9 @@ export class LeetCodeService {
           profileUrl: data.html_url || `https://github.com/${cleanUsername}`,
         };
       }
-    } catch (err: any) {
-      console.warn(`GitHub API fetch failed for ${cleanUsername}:`, err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn(`GitHub API fetch failed for ${cleanUsername}:`, errMsg);
     }
 
     return {
@@ -265,7 +279,7 @@ export class LeetCodeService {
 
     const testSuites: Record<
       string,
-      Array<{ inputArgs: any[]; expected: any; inputLabel: string }>
+      Array<{ inputArgs: unknown[]; expected: unknown; inputLabel: string }>
     > = {
       "two-sum": [
         { inputArgs: [[2, 7, 11, 15], 9], expected: [0, 1], inputLabel: "nums = [2,7,11,15], target = 9" },
@@ -330,7 +344,7 @@ export class LeetCodeService {
 
     try {
       // Safely evaluate solution function
-      let userFn: Function;
+      let userFn: (...args: unknown[]) => unknown;
       try {
         const cleaned = userCode.trim();
         // Wrap in return if function definition
@@ -344,8 +358,9 @@ export class LeetCodeService {
           if (typeof numIslands === 'function') return numIslands;
           if (typeof solution === 'function') return solution;
           throw new Error("No recognized function defined. Please define the required function.");
-        `)();
-      } catch (err: any) {
+        `)() as (...args: unknown[]) => unknown;
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         return {
           passed: false,
           totalTests: suite.length,
@@ -353,10 +368,10 @@ export class LeetCodeService {
           details: suite.map((t) => ({
             input: t.inputLabel,
             expected: JSON.stringify(t.expected),
-            actual: `Compilation Error: ${err.message}`,
+            actual: `Compilation Error: ${errMsg}`,
             passed: false,
           })),
-          message: `Syntax/Compilation Error: ${err.message}`,
+          message: `Syntax/Compilation Error: ${errMsg}`,
           executionTimeMs: Date.now() - startTime,
         };
       }
@@ -375,11 +390,12 @@ export class LeetCodeService {
             actual: JSON.stringify(actual),
             passed: isPassed,
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
+          const errMsg = e instanceof Error ? e.message : String(e);
           details.push({
             input: test.inputLabel,
             expected: JSON.stringify(test.expected),
-            actual: `Runtime Error: ${e.message}`,
+            actual: `Runtime Error: ${errMsg}`,
             passed: false,
           });
         }
@@ -396,13 +412,14 @@ export class LeetCodeService {
           : `${passedCount}/${suite.length} Test Cases Passed. Output does not match expected result.`,
         executionTimeMs: Date.now() - startTime,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
       return {
         passed: false,
         totalTests: suite.length,
         passedTests: 0,
         details: [],
-        message: `Evaluation failed: ${err.message}`,
+        message: `Evaluation failed: ${errMsg}`,
         executionTimeMs: Date.now() - startTime,
       };
     }

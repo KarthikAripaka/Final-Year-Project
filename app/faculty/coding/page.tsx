@@ -16,15 +16,10 @@ import {
   Github,
   Award,
   BookOpen,
-  Calendar,
-  Layers,
   Sparkles,
-  Zap,
   TrendingUp,
-  Clock,
   Download,
   Search,
-  Filter,
   Plus,
   Users,
   FileCheck,
@@ -33,7 +28,7 @@ import {
   Eye,
   Info,
 } from "lucide-react";
-import { CodingAssignment, CodingProblem } from "@/types";
+import { CodingAssignment } from "@/types";
 import { StudentScoreRecord } from "@/lib/coding/codingStore";
 
 export default function FacultyCodingPage() {
@@ -43,7 +38,6 @@ export default function FacultyCodingPage() {
   // Active Assignments
   const [assignments, setAssignments] = useState<CodingAssignment[]>([]);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string>("assign_1");
-  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"scores" | "create" | "architecture">("scores");
@@ -77,7 +71,6 @@ export default function FacultyCodingPage() {
   // Load existing assignments from API
   useEffect(() => {
     async function loadAssignments() {
-      setIsLoadingAssignments(true);
       try {
         const res = await fetch("/api/coding/assignments");
         const data = await res.json();
@@ -85,10 +78,8 @@ export default function FacultyCodingPage() {
           setAssignments(data.assignments);
           setSelectedAssignmentId(data.assignments[0].id);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("Failed to load assignments:", err);
-      } finally {
-        setIsLoadingAssignments(false);
       }
     }
     loadAssignments();
@@ -164,7 +155,7 @@ export default function FacultyCodingPage() {
         setSyncFeedback(data.message || "Batch sync finished.");
       }
       setTimeout(() => setSyncFeedback(null), 5000);
-    } catch (err: any) {
+    } catch {
       setSyncFeedback(`⚠️ Sync completed with partial network status.`);
       setTimeout(() => setSyncFeedback(null), 4000);
     } finally {
@@ -287,8 +278,9 @@ export default function FacultyCodingPage() {
       setNewTitle("");
       setNewDescription("");
       setActiveTab("scores");
-    } catch (err: any) {
-      setCreateErrMsg(err.message || "Failed to publish exam");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to publish exam";
+      setCreateErrMsg(errMsg);
     } finally {
       setIsCreatingAssignment(false);
     }

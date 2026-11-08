@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
       record: result.record,
       updatedRanks: result.updatedRanks,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to process submission" }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to process submission";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 

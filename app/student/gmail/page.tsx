@@ -13,13 +13,11 @@ import {
   Mail,
   RefreshCw,
   CheckCircle2,
-  ShieldCheck,
   Clock,
   Sparkles,
   Volume2,
   Square,
   Filter,
-  Lock,
   Plus,
   Key,
   Calendar,
@@ -97,7 +95,7 @@ export default function GmailPage() {
     if (storeEmails && storeEmails.length > 0 && emails.length === 0) {
       setEmails(storeEmails);
     }
-  }, [storeEmails]);
+  }, [storeEmails, emails.length]);
 
   // Fetch real stored or live emails in background without blocking initial paint
   useEffect(() => {
@@ -123,7 +121,7 @@ export default function GmailPage() {
     return () => {
       isMounted = false;
     };
-  }, [studentAccount]);
+  }, [studentAccount, emails.length]);
 
   // Handle Sync / Fetch Real Gmail
   const handleSync = async (passedToken?: string) => {
@@ -167,9 +165,10 @@ export default function GmailPage() {
           );
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Gmail sync error:", err);
-      setSyncError(err.message || "Sync failed. Please check connection.");
+      const errMsg = err instanceof Error ? err.message : "Sync failed. Please check connection.";
+      setSyncError(errMsg);
     } finally {
       setIsSyncing(false);
     }
@@ -224,8 +223,9 @@ export default function GmailPage() {
         setManualBody("");
         setSyncMessage("Real ANITS email parsed and prioritized into system successfully!");
       }
-    } catch (err: any) {
-      setSyncError("Failed to parse notice: " + err.message);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setSyncError("Failed to parse notice: " + errMsg);
     } finally {
       setManualSubmitting(false);
     }

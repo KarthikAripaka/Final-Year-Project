@@ -149,7 +149,6 @@ JSON schema:
   }
 
   async analyzeSkillGap(studentSkills: StudentSkill[], targetRole: CareerRole): Promise<SkillGapAnalysis> {
-    const studentSkillNames = studentSkills.map((s) => s.skill_name.toLowerCase());
     const required = targetRole.required_skills || [];
 
     const strongSkills: string[] = [];

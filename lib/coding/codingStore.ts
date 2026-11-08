@@ -1,4 +1,4 @@
-import { CodingAssignment, StudentCodingSubmission } from "@/types";
+import { CodingAssignment } from "@/types";
 import { leetcodeService } from "./leetcodeService";
 
 export interface BatchStudentRosterEntry {
@@ -72,7 +72,7 @@ export const initialBatchRoster: BatchStudentRosterEntry[] = [
 ];
 
 // In-Memory Persistent Assignments Store
-export let assignmentsStore: CodingAssignment[] = [
+export const assignmentsStore: CodingAssignment[] = [
   {
     id: "assign_1",
     title: "IV/IV B.Tech IT Lab Exam 1: Data Structures & Algorithms",
